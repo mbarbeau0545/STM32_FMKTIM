@@ -1,0 +1,80 @@
+1. Quadrature Encoder Modes
+TIM_ENCODERMODE_TI1
+Mode x2, comptage uniquement sur les flancs de TI1 (entrée A), avec la direction déterminée par le niveau logique de TI2 (entrée B).
+
+Comptage : Montées ou descentes de TI1.
+Direction : Déterminée par le niveau de TI2.
+TIM_ENCODERMODE_TI2
+Mode x2, comptage uniquement sur les flancs de TI2 (entrée B), avec la direction déterminée par le niveau logique de TI1 (entrée A).
+
+Comptage : Montées ou descentes de TI2.
+Direction : Déterminée par le niveau de TI1.
+TIM_ENCODERMODE_TI12
+Mode x4, comptage sur les montées et descentes des deux entrées TI1 et TI2. La direction est déterminée par le niveau de l'autre entrée.
+
+Comptage : Tous les flancs (montée et descente) de TI1 et TI2.
+Avantage : Meilleure résolution par rapport aux modes x2.
+Utilisation typique : Encodeurs quadrature avec comptage haute résolution.
+2. Clock Plus Direction Modes
+TIM_ENCODERMODE_CLOCKPLUSDIRECTION_X2
+Mode x2, le signal de TI1 est utilisé comme une horloge de comptage (chaque front incrémente/décrémente), et TI2 détermine la direction.
+
+Comptage : Flancs de TI1 uniquement (montée ou descente).
+Direction : Déterminée par TI2.
+TIM_ENCODERMODE_CLOCKPLUSDIRECTION_X1
+Mode x1, semblable à CLOCKPLUSDIRECTION_X2, mais seul un type de flanc (montée ou descente) de TI1 est pris en compte.
+
+Comptage : Uniquement les montées ou descentes de TI1 (selon la configuration).
+Direction : Déterminée par TI2.
+Utilisation typique : Réduction de la fréquence de comptage dans des applications avec des encodeurs rapides.
+3. Directional Clock Modes
+TIM_ENCODERMODE_DIRECTIONALCLOCK_X2
+Mode x2, où TI1 est l'horloge et TI2 la direction. Contrairement aux modes ci-dessus, il prend en compte des règles supplémentaires pour définir la direction.
+
+Comptage : Flancs de TI1 (montée et descente).
+Direction : Déterminée par des paramètres de configuration spécifiques.
+TIM_ENCODERMODE_DIRECTIONALCLOCK_X1_TI12
+Mode x1, le compteur utilise des règles directionnelles similaires, mais ne prend en compte que les montées ou descentes d'une seule entrée (TI1 ou TI2 selon la configuration).
+
+Comptage : Flancs de TI1 ou TI2 (selon la configuration).
+Direction : Basée sur les règles des signaux directionnels.
+4. Single Input Counting Modes (x1)
+TIM_ENCODERMODE_X1_TI1
+Mode x1, comptage uniquement sur TI1, avec la direction déterminée par son propre flanc ou celui de TI2.
+
+Comptage : Flancs de TI1 uniquement.
+Utilisation typique : Applications où une seule entrée encodeur est utilisée.
+TIM_ENCODERMODE_X1_TI2
+Mode x1, comptage uniquement sur TI2, avec la direction déterminée par son propre flanc ou celui de TI1.
+
+Comptage : Flancs de TI2 uniquement.
+Utilisation typique : Similaire au mode précédent, mais pour l'entrée TI2.
+Résumé Comparatif
+Mode	                    Sensibilité	    Entrée pour le Comptage	        Direction basée sur
+TIM_ENCODERMODE_TI1	        x2	            TI1	                            Niveau de TI2
+TIM_ENCODERMODE_TI2         x2	            TI2	                            Niveau de TI1
+TIM_ENCODERMODE_TI12	    x4	            TI1 + TI2	                    Niveau inverse
+CLOCKPLUSDIRECTION_X2	    x2	            TI1	                            Niveau de TI2
+CLOCKPLUSDIRECTION_X1	    x1	            TI1	                            Niveau de TI2
+DIRECTIONALCLOCK_X2	        x2	            TI1	                            TI2 avec règles
+DIRECTIONALCLOCK_X1_TI12	x1	            TI1 ou TI2	                    Avec direction
+X1_TI1	                    x1          	TI1                         	Niveau de TI2
+X1_TI2	                    x1          	TI2                         	Niveau de TI1
+
+Points Clés
+Modes x4 (TI12) offrent la meilleure résolution, mais peuvent augmenter la charge du CPU si les signaux sont très rapides.
+Les modes x1 (X1_TI1, X1_TI2) sont utiles pour des systèmes moins exigeants ou quand une seule entrée est utilisée.
+Les modes ClockPlusDirection et DirectionalClock permettent de traiter des scénarios spécifiques où l'encodeur fournit des informations supplémentaires via un signal directionnel.
+
+Exemple cfg
+ hwEcdrCfg_s.HwMode_e = FMKTIM_ECDR_MODE_TI12;
+    hwEcdrCfg_s.freqEcdr_u32 = (t_uint32)(260000 * 4);
+    hwEcdrCfg_s.IC1_s.Polarity_e = FMKTIM_ECDR_IN_POLARITY_RISING;
+    hwEcdrCfg_s.IC1_s.Selection_e = FMKTIM_ICSELECT_DIRECT_TI;
+    hwEcdrCfg_s.IC2_s.Polarity_e = FMKTIM_ECDR_IN_POLARITY_RISING;
+    hwEcdrCfg_s.IC2_s.Selection_e = FMKTIM_ICSELECT_DIRECT_TI;
+
+
+Si vous voulez l’angle : angle = CNT × (360 / (PPR × 4))
+Si vous voulez la distance parcourue : distance = CNT × (pas / (PPR × 4))
+En mode X4 -> 4 ticks par période du signal donc si PPR (impulsions par tour) = 100, cela nous fait 400 ticks par tours  
