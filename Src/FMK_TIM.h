@@ -227,12 +227,16 @@
         t_sFMKTIM_ICCfg IC2_s;              /**< Input Compare Line 2 Configuration */
     } t_sFMKTIM_EcdrCfg;
 
-    typedef struct 
-    {
-        t_uint32 * bufferTI1_pu32;        /**< Buffer Address to store TI1 information */
-        t_uint32 * bufferTI2_pu32;        /**< Buffer Address to store TI2 information */
-        t_uint16   bufferSize_u16;          /**< Buffer TI1 & TI2 Sized */
-    } t_sFMKTIM_DmaInfo;
+    /**
+    *
+    *	@brief  Call back function for channels
+    *
+    *	@param[in]      f_timer_e : timer channel 
+    *	@param[out]     f_channel_e : channel which make the interruption
+    *	 
+    *
+    */
+   typedef void (t_cbFMKTIM_InterruptLine)(t_eFMKTIM_InterruptLineType f_InterruptType_e, t_uint8 f_InterruptLine_u8);
     // ********************************************************************
     // *                      Prototypes
     // ********************************************************************
@@ -533,23 +537,16 @@
     t_eReturnCode FMKTIM_Get_LineErrorStatus(t_eFMKTIM_InterruptLineType f_ITLineType_e,
                                                 t_uint32 f_IT_line_u8,
                                                 t_uint16 *f_chnlErrInfo_pu16);
-    
     /**
     *
-    *	@brief      Function to redirect all callback function.\n
-    *  @note       Every HAL callback call this function, thsi function redirect to the right
-    *              user function depending on which timer is called
+    *	@brief      DO NOT USE, Function to get the Handle Type def for IRQN_Handler Function
     *
-    *	@param[in]  f_timerIstce_ps         : bsp instance timer which make interruption
-    *	@param[in]  f_HwTimcfg_e            : the timer configuration 
-    *	@param[in]  f_chnlState_e           : The state of the timer.\n
+    *	@param[in]  f_timer_e                : enum value for the timer, value from @ref t_eFMKTIM_Timer
     *
-    *  @retval RC_OK                             @ref RC_OK
-    *  @retval RC_ERROR_PARAM_INVALID            @ref RC_ERROR_PARAM_INVALID
-    *  @retval RC_ERROR_PTR_NULL                 @ref RC_ERROR_PTR_NULL
     *
     */
-    void FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, t_eFMKTIM_BspEvent f_cbEvent_e);
+    TIM_HandleTypeDef * FMKTIM_PRIVATE_GetHandleTypeDef(t_uint8 f_timer_u8);
+
 #endif // FMKTIM_H_INCLUDED           
 //************************************************************************************
 // End of File
