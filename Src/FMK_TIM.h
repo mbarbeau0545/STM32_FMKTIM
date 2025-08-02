@@ -56,7 +56,7 @@
         FMKTIM_ERRSTATE_INIT_FAILED,                 /**< Failed during intitialize of channel */
         FMKTIM_ERRSTATE_UNKNOWN,                     /**< unknown error detected */
 
-    } t_eFMKTIM_ChnlErrorState;
+    } t_eFMKTIM_ErrorState;
 
     /**
     * @brief Slave Timer Channel Polarity.
