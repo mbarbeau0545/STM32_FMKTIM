@@ -191,13 +191,13 @@
     
     typedef struct
     {
-        t_uint32 frequency_u32;         /**< update frequency value */
-        t_uint16 dutyCycle_u16;         /**< update duty cycle value */
+        t_float32 frequency_f32;         /**< get frequency value */
+        t_uint16 dutyCycle_u16;         /**< get duty cycle value */
     } t_sFMKTIM_PwmValue;
     
     typedef struct 
     {
-        t_uint32 frequency_u32;         /**< update frequency value */
+        t_float32 frequency_f32;         /**< get frequency value */
         t_uint32 ARR_Register_u32;
         t_uint16 CCRxRegister_u16;
     } t_sFMKTIM_ICValue;
@@ -295,7 +295,7 @@
     *               multiple channels, in a sense that, frequency is shared by all PWM channels.\n
     *               In result, the modification of the timer configuration reverbate for all channels.\n     
     *               For Instance, every FMKTIM_INTERRUPT_LINE_IO_0Y, Y belong to [0, Innfini] shared the same timer.\n
-    *
+    *   @warning    Computation of the frequency takes about 3 µs
     *	@param[in]  f_InterruptLine_e      : enum value for Interrupt Line, value from @ref t_eFMKTIM_InterruptLineIO
     *	@param[in]  f_pwmFreq_u32          : the frequency timer.
     *
