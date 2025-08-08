@@ -23,10 +23,12 @@
 // ********************************************************************
 // *                      Defines
 // ********************************************************************
-#define FMKTIM_MAX_LOOP_DECREASING ((t_uint8)30)
-#define FMKTIM_ARR_DECREASING_VAL_16B ((t_uint32)2000)
-#define FMKTIM_ARR_DECREASING_VAL_32B ((t_uint32)20000)
-
+///@brief Paramater DO NOT MODIFY !!!
+#define FMKTIM_MAX_LOOP_DECREASING ((t_uint8)5)
+#define FMKTIM_ARR_DECREASING_VAL_16B ((t_uint32)18000)
+#define FMKTIM_ARR_DECREASING_VAL_32B ((t_uint32)18000)
+#define FMKTIM_16BIT_MAX_ARR          ((t_uint16)50000)
+#define FMKTIM_LOOP_MAX               ((t_uint16)5) // according test should never exceed 1
 // ********************************************************************
 // *                      Types
 // ********************************************************************
@@ -74,17 +76,8 @@ static inline t_float32 s_FMKTIM_Timer_GetArrRegister(t_uint32 osc_valMhz, t_uin
 /*********************************
  * s_FMKTIM_Timer_GeFreqPwm
  *********************************/
-static inline t_float32  s_FMKTIM_Timer_GetFreqPwm(t_uint32 osc_valMhz, t_uint32 f_Prescaler_u32, t_uint32 f_ARRVal) {
+static inline t_float32  s_FMKTIM_Timer_ComputePwmFreq(t_uint32 osc_valMhz, t_uint32 f_Prescaler_u32, t_uint32 f_ARRVal) {
     return (t_float32)(((t_float32)osc_valMhz * CST_MHZ_TO_HZ) / (((t_float32)f_Prescaler_u32 + 1) * ((t_float32)(f_ARRVal + 1))));
-}
-/*********************************
- * s_FMKTIM_DecomposeFloat
- *********************************/
-// Fonction inline pour décomposer une valeur
-static inline void  s_FMKTIM_DecomposeFloat(t_float32 f_value_f32,t_uint32 *f_partieEntiere_pu32, t_float32 *f_fractionleft_pf32 ) {
-
-    *f_partieEntiere_pu32 = (t_uint32)((f_value_f32 >= 0) ? floorf(f_value_f32 + 0.5f) : ceilf(f_value_f32 - 0.5f)); // Arrondi vers l'entier le plus proche
-    *f_fractionleft_pf32 = (t_float32)(f_value_f32 - (t_float32)(*f_partieEntiere_pu32)); // Partie fractionnelle
 }
 //****************************************************************************
 //                      Public functions - Implementation
@@ -101,26 +94,28 @@ t_eReturnCode FMKTIM_GetPwmTimerInitParam(  t_eFMKCPU_ClockPort f_timClock_e,
 {
     t_eReturnCode Ret_e = RC_OK;
     t_uint32 maxARRValue_u32 =  (t_uint32)0;
+    t_float32 ratio_f32 = (t_float32)0;
     t_float32 targetARRValue_f32 = (t_float32)0;
-    t_float32 freqMaxSupported_f32 = (t_uint16)0.0f;
     t_float32 prescalerTheo_f32 = (t_float32)0.0f;
     t_float32 deltaPrescaler_f32 = (t_float32)0.0f;
-    //t_float32 freqPwmCompute_f32 = (t_float32)0.0f;
-    //t_float32 deltaFreqPwm_f32 = (t_float32)0;
-
+    t_float32 freqPwmCompute_f32 = (t_float32)0.0f;
+    t_float32 deltaFreqPwm_f32 = (t_float32)0.0f;
+    t_float32 freqError_f32 = (t_float32)0.0f;
+    t_uint32 maxPSCVal_u32 = (t_uint32)0;
     t_uint32 maxNumberBit_u32   = (t_uint32)0;
     t_uint32 decreasingValue_u32 = (t_uint32)FMKTIM_ARR_DECREASING_VAL_16B;
     t_uint32 realPrescaler_u32 = (t_uint32)0;
+    t_uint32 deltaARR_u32;
     t_uint32 realARR_u32 = (t_uint32)0;
-    
-    t_uint8 LLI_u8;
+    t_uint8 loopCnt_u8 = (t_uint8)0;
 
     if((f_bspTimPrescaler_pu32 == (t_uint32 *)NULL)
     || (f_bspTimARR_pu32       == (t_uint32 *)NULL))
     {
         Ret_e = RC_ERROR_PTR_NULL;
     }
-    if(f_timClock_e >= FMKCPU_RCC_CLK_NB)
+    if((f_timClock_e >= FMKCPU_RCC_CLK_NB)
+    && (f_PwmFreq_f32 < (t_float32)1))
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
     }
@@ -132,85 +127,124 @@ t_eReturnCode FMKTIM_GetPwmTimerInitParam(  t_eFMKCPU_ClockPort f_timClock_e,
         if(FMKTIM_IS_32B_TIMER(f_timClock_e) == True)
         {
             maxNumberBit_u32 = (t_uint32)(CST_MAX_UINT_32BIT);
+            maxPSCVal_u32 = (t_uint32)(FMKTIM_TIMER_PWM_ARR_TARGET_32_BIT); 
             maxARRValue_u32 = (t_uint32)(FMKTIM_TIMER_PWM_ARR_TARGET_32_BIT); // 32-bit target
+            targetARRValue_f32 = (t_uint32)(FMKTIM_TIMER_PWM_ARR_TARGET_32_BIT); 
             decreasingValue_u32 = FMKTIM_ARR_DECREASING_VAL_32B;
         }
         else 
         {   
+            maxPSCVal_u32 = (t_uint32)(CST_MAX_UINT_16BIT - 2); 
             maxNumberBit_u32 = (t_uint32)(CST_MAX_UINT_16BIT);
-            maxARRValue_u32 = (t_uint32)(FMKTIM_TIMER_PWM_ARR_TARGET_16_BIT); // 16-bit target
+            maxARRValue_u32 = (t_uint32)(CST_MAX_UINT_16BIT - 1); // 16-bit target
+            targetARRValue_f32 = (t_uint32)(FMKTIM_16BIT_MAX_ARR); // 16-bit target
             decreasingValue_u32 = FMKTIM_ARR_DECREASING_VAL_16B;
         }
-        //---------Know the max frequency supported with max Arr Value---------//
-        targetARRValue_f32 = s_FMKTIM_Timer_GetArrRegister((t_uint32)f_timerFreqMhz_u32, (t_uint32)0, f_PwmFreq_f32);
-        
-        if(targetARRValue_f32 > (t_float32)maxARRValue_u32)
+        //---- First Calculate the theorical Prescaler in float ----//
+        do
         {
-            targetARRValue_f32 = (t_float32)maxARRValue_u32;
-        }
-
-        freqMaxSupported_f32 = (t_float32)(((t_float32)f_timerFreqMhz_u32 * CST_MHZ_TO_HZ) / ((t_uint32)targetARRValue_f32 + (t_float32)1));
-
-        if(f_PwmFreq_f32 > (t_float32)freqMaxSupported_f32)
-        {
-            for(LLI_u8 = (t_uint8)0 ; 
-                (LLI_u8 < FMKTIM_MAX_LOOP_DECREASING)
-                && (f_PwmFreq_f32 > freqMaxSupported_f32); 
-                LLI_u8++)
-                {
-                    //---------Compute New Max Frequency with new ARR value---------//
-                    targetARRValue_f32 -= (t_float32)decreasingValue_u32;
-                    freqMaxSupported_f32 = (t_float32)(((t_float32)f_timerFreqMhz_u32 * CST_MHZ_TO_HZ) / ((t_float32)targetARRValue_f32 + (t_float32)1));
-                }
-                if(LLI_u8 >= (t_uint8)FMKTIM_MAX_LOOP_DECREASING)
-                {
-                    Ret_e = RC_ERROR_WRONG_RESULT;
-                }
-        }
-        if(Ret_e == RC_OK)
-        {
-            //---- Prescaler Théorique--------//
-            prescalerTheo_f32 = s_FMKTIM_Timer_GetPrescaler((t_uint32)f_timerFreqMhz_u32, targetARRValue_f32, f_PwmFreq_f32);
-            //---- Delta Prescaler--------//
-            s_FMKTIM_DecomposeFloat(prescalerTheo_f32, &realPrescaler_u32, &deltaPrescaler_f32);
-
-            //----Manage prescaler == 0 for DIV 0 --------//
-            if(realPrescaler_u32 == (t_uint32)0)
+            ratio_f32 = (t_float32)(f_timerFreqMhz_u32 * CST_MHZ_TO_HZ) / f_PwmFreq_f32;
+            prescalerTheo_f32 = (t_float32)((ratio_f32 / (t_float32)targetARRValue_f32) - 1);
+            loopCnt_u8++;
+            if(loopCnt_u8 > (t_uint8)FMKTIM_LOOP_MAX)
             {
-                realARR_u32 = (t_uint32)((((t_uint32)f_timerFreqMhz_u32 * CST_MHZ_TO_HZ) /
-                                                    (t_uint32)(f_PwmFreq_f32)) - (t_uint32)1);
+                Ret_e = RC_ERROR_LIMIT_REACHED;
+                break;
             }
-            else 
+            if(prescalerTheo_f32 > (t_float32)CST_MAX_UINT_16BIT)
             {
-
-                //---- recalculate ARR value--------//
-                realARR_u32 = (t_uint32)((t_float32)targetARRValue_f32 + (t_float32)((t_float32)(targetARRValue_f32/realPrescaler_u32) * deltaPrescaler_f32));
+                targetARRValue_f32 -= FMKTIM_ARR_DECREASING_VAL_16B;
             }
-            //----Verify Range Validity--------//
-            if(realPrescaler_u32 > (t_uint32)(maxNumberBit_u32)
-            || realARR_u32 > (t_uint32)maxNumberBit_u32
-            || realARR_u32 == (t_uint32)0)
+        } while(prescalerTheo_f32 > (t_float32)maxPSCVal_u32);
+
+        realPrescaler_u32 = (t_uint32)(prescalerTheo_f32);
+        deltaPrescaler_f32 = (t_float32)(prescalerTheo_f32 - (t_float32)realPrescaler_u32);
+
+        //---- now we compute ARR using delta PSC to put it into ARR register----//
+        // basically we have PSC = 3,67 and ARR = 43000 for example 
+        // so we say the PSC will be 3 and the 0,67 we cannot le it on side 'cause the 
+        // the frequency will not be right at all 
+        // so what we do is take the eqution denominater (ARR +1)(PSC + deltaPSC + 1)
+        // and we try to obtain (ARR+ deltaARR +1)(PSC +1) 
+        // cause know if the ARR is +- 1 that doesn't change the frequency instead of having 1 or 2
+        // that works very well 'cause in the test on python and C, whith this algo we obtain 
+        // a delta_freq / freq < 0,8 % from every frequency from 1 to 1MHz 
+        //                     < 1 % from every frequency from 1 000 000 Hz to 100MHz
+        if(realPrescaler_u32 > (t_uint32)0)
+        {
+            loopCnt_u8 = (t_uint8)0;
+            do
+            {
+                deltaARR_u32 = (t_uint32)roundf(((targetARRValue_f32 * (deltaPrescaler_f32 + 1.0f)) - (t_float32)realPrescaler_u32) / (t_float32)realPrescaler_u32);
+                realARR_u32 = (t_uint32)(targetARRValue_f32 + deltaARR_u32);
+                loopCnt_u8++;
+                if(loopCnt_u8 > (t_uint8)FMKTIM_LOOP_MAX)
+                {
+                    Ret_e = RC_ERROR_LIMIT_REACHED;
+                    break;
+                }
+                if(realARR_u32 > (t_uint32)maxARRValue_u32)
+                {
+                    targetARRValue_f32 -= (t_uint32)decreasingValue_u32;
+                    prescalerTheo_f32 = (t_float32)(ratio_f32 / targetARRValue_f32) - 1.0f;
+                    realPrescaler_u32 = (t_uint32)prescalerTheo_f32;
+                    deltaPrescaler_f32 = prescalerTheo_f32 - (t_float32)realPrescaler_u32;
+                }
+            } while (realARR_u32 > maxARRValue_u32);
+
+            realPrescaler_u32 -= (t_uint32)1; // don't know why to check            
+        }
+        else 
+        {
+            realPrescaler_u32 = (t_uint32)0;
+            loopCnt_u8 = (t_uint8)0;
+            do
+            {
+                realARR_u32 = (t_uint32)(((t_float32)f_timerFreqMhz_u32 * CST_MHZ_TO_HZ) /
+                                            (f_PwmFreq_f32 * (t_float32)(realPrescaler_u32 + 1)) - 1.0f);
+                loopCnt_u8++;
+                if(loopCnt_u8 > (t_uint8)FMKTIM_LOOP_MAX)
+                {
+                    Ret_e = RC_ERROR_LIMIT_REACHED;
+                    break;
+                }
+                if(realARR_u32 > maxPSCVal_u32)
+                {
+                    realPrescaler_u32++;
+                }
+                
+            } while(realARR_u32 > maxARRValue_u32);
+        }
+        //----Verify Range Validity--------//
+        if(realPrescaler_u32 > (t_uint32)(maxNumberBit_u32)
+        || realARR_u32 > (t_uint32)maxNumberBit_u32
+        || realARR_u32 == (t_uint32)0)
+        {
+            Ret_e = RC_ERROR_LIMIT_REACHED;
+        }
+        else 
+        {
+            // to get faster calculation, I decide to not verify calculation...
+            //----Verify Compute value--------//
+            freqPwmCompute_f32 = s_FMKTIM_Timer_ComputePwmFreq((t_uint32)f_timerFreqMhz_u32, realPrescaler_u32, realARR_u32);
+            deltaFreqPwm_f32 = (t_float32)fabs(f_PwmFreq_f32 - freqPwmCompute_f32);
+            freqError_f32 = (t_float32)(deltaFreqPwm_f32 / f_PwmFreq_f32);
+
+            if(freqError_f32 > (t_float32)FMKTIM_FREQPWM_COMPUTE_DELTA_ACCEPTANCE)
             {
                 Ret_e = RC_ERROR_WRONG_RESULT;
             }
-            else 
-            {
-                // to get faster calculation, I decide to not verify calculation...
-                //----Verify Compute value--------//
-                /*freqPwmCompute_f32 = s_FMKTIM_Timer_GetFreqPwm((t_uint32)OscTimSrcValue_u16, (realPrescaler_u32 - 1), realARR_u32);
-                deltaFreqPwm_f32 = (t_float32)(f_PwmFreq_f32 - freqPwmCompute_f32);
-                #warning('update condition 'cause now based on pourcentage')
-                if (fabsf(deltaFreqPwm_f32) > (t_float32)FMKTIM_FREQ_COMPUTE_DELTA_ACCEPTANCE)
-                {
-                    Ret_e = RC_ERROR_WRONG_RESULT;
-                }*/
 
-                //----Copy values--------//
-                if(Ret_e == RC_OK)
-                {
-                    *f_bspTimARR_pu32 = (t_uint32)(realARR_u32);
-                    *f_bspTimPrescaler_pu32 = (t_uint32)(realPrescaler_u32 - 1);
-                }
+            //----Copy values--------//
+            if(Ret_e == RC_OK)
+            {
+                *f_bspTimARR_pu32 = (t_uint32)(realARR_u32);
+                *f_bspTimPrescaler_pu32 = (t_uint32)(realPrescaler_u32);
+            }
+            else
+            {
+                *f_bspTimARR_pu32 = (t_uint32)0;
+                *f_bspTimPrescaler_pu32 = (t_uint32)0;
             }
         }
     }
@@ -329,12 +363,12 @@ t_eReturnCode FMKTIM_GetEvntTimerInitParam( t_eFMKCPU_ClockPort f_timClock_e,
         else
         {
             //----Verify Compute value--------//
-            freqCompute_f32 = s_FMKTIM_Timer_GetFreqPwm((t_uint32)f_timerFreqMhz_u32, realPrescaler_u32, realARR_u32);
+            freqCompute_f32 = s_FMKTIM_Timer_ComputePwmFreq((t_uint32)f_timerFreqMhz_u32, realPrescaler_u32, realARR_u32);
             deltaFreq_f32 = (t_float32)(f_EvntFreq_f32 - freqCompute_f32);
 
             if (fabsf(deltaFreq_f32) > (t_float32)FMKTIM_FREQ_COMPUTE_DELTA_ACCEPTANCE)
             {
-                Ret_e = RC_ERROR_WRONG_RESULT;
+                Ret_e = RC_ERROR_NOT_ALLOWED;
             }
             if(Ret_e == RC_OK)
             {
