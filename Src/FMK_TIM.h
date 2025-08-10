@@ -119,13 +119,14 @@
         FMKTIM_ECDR_MODE_TI1 = 0x00,                /**< Quadrature encoder mode 1, x2 mode, counts up/down on TI1FP1 edge depending on TI2FP2 level  */    
         FMKTIM_ECDR_MODE_TI2,                       /*!< Quadrature encoder mode 2, x2 mode, counts up/down on TI2FP2 edge depending on TI1FP1 level. */
         FMKTIM_ECDR_MODE_TI12,                      /**< Quadrature encoder mode 3, x4 mode, counts up/down on both TI1FP1 and TI2FP2 edges depending on the level of the other input */
+#if defined(FMKCPU_STM32_ECU_FAMILY_G4)
         FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X2,    /**< Encoder mode: Clock plus direction, x2 mode */
         FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X1,    /**< Encoder mode: Clock plus direction, x1 mode, TI2FP2 edge sensitivity is set by CC2P */
         FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X2,        /**< Encoder mode: Directional Clock, x2 mode */
         FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X1_TI12,   /**< Encoder mode: Directional Clock, x1 mode, TI1FP1 and TI2FP2 edge sensitivity is set by CC1P and CC2P */
         FMKTIM_ECDR_MODE_X1_TI1,                    /**< Quadrature encoder mode: x1 mode, counting on TI1FP1 edges only, edge sensitivity is set by CC1P */
         FMKTIM_ECDR_MODE_X1_TI12,                   /**< Quadrature encoder mode: x1 mode, counting on TI2FP2 edges only, edge sensitivity is set by CC1P */
-
+#endif // FMKCPU_STM32_ECU_FAMILY_G4
         FMKTIM_ECDR_MODE_NB,                        /**< Number of encoder mode */
     } t_eFMKTIM_EcdrMode;
 
