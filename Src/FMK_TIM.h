@@ -173,14 +173,14 @@
 
     typedef struct
     {
-        t_uint32 frequency_u32;         /**< update frequency value */
+        t_float32 frequency_f32;         /**< update frequency value */
         t_uint16 dutyCycle_u16;         /**< update duty cycle value */
         t_uint16 nbPulses_u16;          /**< update nbPulses_u16 value */
     } t_sFMKTIM_PwmOpe;
 
     typedef struct 
     {
-        t_uint32 frequency_u32;
+        t_float32 frequency_f32;
         t_eFMKTIM_ICState IcState_e;
     } t_sFMKTIM_ICOpe;
 
@@ -296,9 +296,10 @@
     *               multiple channels, in a sense that, frequency is shared by all PWM channels.\n
     *               In result, the modification of the timer configuration reverbate for all channels.\n     
     *               For Instance, every FMKTIM_INTERRUPT_LINE_IO_0Y, Y belong to [0, Innfini] shared the same timer.\n
-    *   @warning    Computation of the frequency takes about 3 µs
+    *   @warning    Computation of the frequency takes about 3 µs at 128
+    *   @warning    Frequency has to be higher than FMKTIM_TIMER_MIN_FREQ_ALLOWED
     *	@param[in]  f_InterruptLine_e      : enum value for Interrupt Line, value from @ref t_eFMKTIM_InterruptLineIO
-    *	@param[in]  f_pwmFreq_u32          : the frequency timer.
+    *	@param[in]  f_pwmFreq_f32          : the frequency timer.
     *
     *  @retval RC_OK                             @ref RC_OK
     *  @retval RC_ERROR_PARAM_INVALID            @ref RC_ERROR_PARAM_INVALID
@@ -306,7 +307,7 @@
     *  @retval RC_ERROR_WRONG_RESULT             @ref RC_ERROR_WRONG_RESULT
     */
     t_eReturnCode FMKTIM_Set_PWMLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
-                                        t_uint32 f_pwmFreq_u32,
+                                        t_float32 f_pwmFreq_f32,
                                         t_eFMKTIM_LinePolarity f_linePolarity_e,
                                         t_cbFMKTIM_InterruptLine * f_PwmPulseFinished_pcb);
     /**
@@ -347,9 +348,11 @@
     *             Once the timer is init correctly, this function set f_channel_e configuration
     *             based on the interrupt mode gives by f_MeasTrigger_e.\n
     *             Finally, if the CPU detect the event, it will call the function f_ITLine_cb.\n
+    * 
     *
     *	@param[in]  f_InterruptLine_e      : enum value for Interrupt Line, value from @ref t_eFMKTIM_InterruptLineIO
     *	@param[in]  f_MeasTrigger_e        : trigger for interruption, value from @ref t_eFMKTIM_ChnlMeasTrigger
+    *	@param[in]  f_timerFreqHz_f32      : Frequency timer
     *	@param[in]  f_ITLine_cb         : call back function to call
     *
     *  @retval RC_OK                             @ref RC_OK
@@ -358,9 +361,10 @@
     *  @retval RC_ERROR_ALREADY_CONFIGURED       @ref RC_ERROR_ALREADY_CONFIGURED
     *  @retval RC_ERROR_NOT_ALLOWED              @ref RC_ERROR_NOT_ALLOWED
     */
-    t_eReturnCode FMKTIM_Set_ICLineCfg(  t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
-                                            t_eFMKTIM_ChnlMeasTrigger f_MeasTrigger_e,
-                                            t_cbFMKTIM_InterruptLine * f_ITLine_cb);
+    t_eReturnCode FMKTIM_Set_ICLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
+                                         t_eFMKTIM_ChnlMeasTrigger f_MeasTrigger_e,
+                                         t_float32 f_timerFreqHz_f32,
+                                         t_cbFMKTIM_InterruptLine  * f_ITChannel_cb);
     /**
     *
     *	@brief    Configure a timer channel on event configuration.\n
