@@ -532,16 +532,16 @@
     *
     *	@param[in]  f_timer_e                : enum value for the timer, value from @ref t_eFMKTIM_Timer
     *	@param[in]  f_channel_e              : enum value for the channel, value from @ref t_eFMKTIM_InterruptChnl
-    *	@param[in]  f_chnlErrInfo_pu16       : storage for channel error.\n
+    *	@param[in]  f_chnlErrInfo_pe       : storage for channel error.\n
     *
     *  @retval RC_OK                             @ref RC_OK
     *  @retval RC_ERROR_PARAM_INVALID            @ref RC_ERROR_PARAM_INVALID
     *  @retval RC_ERROR_PTR_NULL                 @ref RC_ERROR_PTR_NULL
     *
     */
-    t_eReturnCode FMKTIM_Get_LineErrorStatus(t_eFMKTIM_InterruptLineType f_ITLineType_e,
-                                                t_uint32 f_IT_line_u8,
-                                                t_uint16 *f_chnlErrInfo_pu16);
+    t_eReturnCode FMKTIM_Get_LineErrorStatus(   t_eFMKTIM_InterruptLineType f_ITLineType_e,
+                                                t_uint8 f_IT_line_u8,
+                                                t_eFMKTIM_ErrorState *f_chnlErrInfo_pe);
     /**
     *
     *	@brief      DO NOT USE, Function to get the Handle Type def for IRQN_Handler Function
