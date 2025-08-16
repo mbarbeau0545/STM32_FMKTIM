@@ -295,11 +295,21 @@
     *               IMPORTANT, the PWM generation is based on a timer configuration which share
     *               multiple channels, in a sense that, frequency is shared by all PWM channels.\n
     *               In result, the modification of the timer configuration reverbate for all channels.\n     
-    *               For Instance, every FMKTIM_INTERRUPT_LINE_IO_0Y, Y belong to [0, Innfini] shared the same timer.\n
-    *   @warning    Computation of the frequency takes about 3 µs at 128
+    *               For Instance, every FMKTIM_INTERRUPT_LINE_IO_0Y, Y belong to [0, 9] shared the same timer.\n
+    *   @note       In Pwm Pulse Generation, I add a way to synchronize channel pulses with f_enableSyncPulse_b,
+    *               this flag allow user to synchornize the start and stop of every channel configured (freq dc, pulses).
+    *               if this mode is ON, once this API si call to set the register for timer & channel,
+    *               it will automaticaaly set the others, (you can call this API for other channel 
+    *               of the same timer, this API will juste ignore and return RC_OK)
+    *               if the mode is disable you can have on channel in pulse generation and another 
+    *               channel in inifinte Dutycycle.
+    *   @warning    Computation of the frequency takes about 3 µs at 128 witout FPU
     *   @warning    Frequency has to be higher than FMKTIM_TIMER_MIN_FREQ_ALLOWED
+    *   
     *	@param[in]  f_InterruptLine_e      : enum value for Interrupt Line, value from @ref t_eFMKTIM_InterruptLineIO
     *	@param[in]  f_pwmFreq_f32          : the frequency timer.
+    *	@param[in]  f_enableSyncPulse_b    : Enable the pulse synchronization 
+    *	@param[in]  f_PwmPulseFinished_pcb : Function to be called whenever the pulses genration is doen.
     *
     *  @retval RC_OK                             @ref RC_OK
     *  @retval RC_ERROR_PARAM_INVALID            @ref RC_ERROR_PARAM_INVALID
@@ -309,6 +319,7 @@
     t_eReturnCode FMKTIM_Set_PWMLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
                                         t_float32 f_pwmFreq_f32,
                                         t_eFMKTIM_LinePolarity f_linePolarity_e,
+                                        t_bool f_enableSyncPulse_b,
                                         t_cbFMKTIM_InterruptLine * f_PwmPulseFinished_pcb);
     /**
     *
