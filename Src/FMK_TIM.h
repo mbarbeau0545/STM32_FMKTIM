@@ -19,6 +19,7 @@
     // *                      Includes
     // ********************************************************************
     #include "FMK_CFG/FMKCFG_ConfigFiles/FMKTIM_ConfigPublic.h"
+    #include "FMK_CFG/FMKCFG_ConfigFiles/FMKCPU_ConfigPublic.h"
     #include "TypeCommon.h"
     // ********************************************************************
     // *                      Defines
@@ -562,7 +563,6 @@
     *
     */
     TIM_HandleTypeDef * FMKTIM_PRIVATE_GetHandleTypeDef(t_uint8 f_timer_u8);
-
 #endif // FMKTIM_H_INCLUDED           
 //************************************************************************************
 // End of File

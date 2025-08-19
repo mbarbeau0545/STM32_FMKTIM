@@ -142,8 +142,6 @@ static t_sSafeMem_BlockInfo g_sfmb_TimChnlInfo_as[FMKTIM_TIMER_NB][FMKTIM_CHANNE
 
 /// @brief Know the allowed chnl for pulses generation when user not selected syncOpe 
 static t_eFMKTIM_InterruptChnl g_AllowTimChnlPulse_ae[FMKTIM_TIMER_NB];
-static t_uint32 g_start_time_u32 = (t_uint32)0;
-static t_uint32 g_end_time_u32 = (t_uint32)0;
 //********************************************************************************
 //                      Local functions - Prototypes
 //********************************************************************************
@@ -1719,7 +1717,6 @@ static t_eReturnCode s_FMKTIM_RqstLineValidityOpe(  t_eFMKTIM_InterruptLineType 
     && g_FmkTim_ModState_e != STATE_CYCLIC_PREOPE)
     {
         Ret_e = RC_WARNING_BUSY;
-        ASSERT((t_uint16)Ret_e);
     }
     else
     {
@@ -1765,6 +1762,10 @@ static t_eReturnCode s_FMKTIM_RqstLineValidityOpe(  t_eFMKTIM_InterruptLineType 
             {
                 Ret_e = RC_ERROR_WRONG_CONFIG;
                 ASSERT((t_uint16)Ret_e);
+            }
+            else if(timerInfo_ps->bspTimer_ps->Lock == HAL_LOCKED)
+            {
+                Ret_e = RC_WARNING_BUSY;
             }
         }
         if(Ret_e == RC_OK)
@@ -2492,7 +2493,7 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
     if (Calltimer_e >= FMKTIM_TIMER_NB)
     {
         //------------Call somoene to deal with this error------------//
-        return; 
+        Ret_e = RC_ERROR_LIMIT_REACHED;
     }
     else
     {
@@ -2512,8 +2513,7 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
                                                         FMKTIM_LINE_RUNMODE_INTERRUPT,
                                                         FMKTIM_HWTIM_CFG_EVNT,
                                                         FMKTIM_CHNLST_DISACTIVATED);
-                    //FMKCPU_GetTick(&g_end_time_u32);
-                    //FMKSRL_LOG("Pulses finished at %d", g_end_time_u32);
+                    FMKSRL_LOG("Pulses finished\r\n");
                     //---- we loop on every pwm that is ON and in SyncOpe Mode
                     //      and only after it we call user, too enhance the synchronisation of pulses ----//
                     for(LLI_u8 = (t_uint8)0 ; (LLI_u8 < FMKTIM_CHANNEL_NB) && (Ret_e >= RC_OK) ; LLI_u8++)
@@ -2530,6 +2530,8 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
                         
                         }
                     }
+                    //--- set to lock the timer to prevent user calling API from this callback ----//
+                    timerInfo_ps->bspTimer_ps->Lock = HAL_LOCKED;
                     for(LLI_u8 = (t_uint8)0 ; (LLI_u8 < FMKTIM_CHANNEL_NB) && (Ret_e == RC_OK) ; LLI_u8++)
                     {
                         chnlInfo_ps = (t_sFMKTIM_ChnlInfo *)(&g_TimChnlInfo_as[Calltimer_e][LLI_u8]);
@@ -2541,6 +2543,7 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
                                                 c_FmkTim_ChnlItLineMapp[Calltimer_e][LLI_u8].ITLine_u8);
                         }
                     }
+                    timerInfo_ps->bspTimer_ps->Lock = HAL_UNLOCKED;
                     //g_timerPeriodPwm_ab[Calltimer_e] = (t_bool)False;
                     if(Ret_e != RC_OK)
                     {
@@ -2608,6 +2611,10 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
             }
 
         }
+    }
+    if(Ret_e < RC_OK)
+    {
+        ASSERT((t_uint16)Ret_e);
     }
 
     return;
@@ -2996,12 +3003,11 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
         //      if timer running user wants to set another set pulse and not wait this 
         //      this current burst pulse is done ----//
         if(((f_timerInfo_ps->IsTimerRunning_b == (t_bool)TRUE)
-        && (f_timerInfo_ps->SoftSyncMode_b == (t_bool)FALSE)
-        && (AllowPulseChnl_e != FMKTIM_CHANNEL_NB)
-        && (GETBIT(f_timerInfo_ps->mskChnlState_u16, // here we check that the pulse channel is activated
-                AllowPulseChnl_e) == BIT_IS_SET_16B))
+                && (f_timerInfo_ps->SoftSyncMode_b == (t_bool)FALSE)
+                && (AllowPulseChnl_e != FMKTIM_CHANNEL_NB)
+                && (GETBIT(f_timerInfo_ps->mskChnlState_u16, AllowPulseChnl_e) == BIT_IS_SET_16B))
         || (((f_timerInfo_ps->IsTimerRunning_b == (t_bool)TRUE))
-        && (f_pwmOpe_ps->nbPulses_u16 == (t_uint16)0)))
+                && (f_pwmOpe_ps->nbPulses_u16 == (t_uint16)0)))
         {
             Ret_e = s_FMKTIM_Set_HwChannelState(f_timerInfo_ps, 
                                                 &chnlsInfo_pas[FMKTIM_CHANNEL_1], // not used 
@@ -3052,7 +3058,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
                         
                     }
                 }
-        }
+            }
             //---- create an update event to load the register ----//
             f_timerInfo_ps->bspTimer_ps->Instance->CNT = 0;
             f_timerInfo_ps->bspTimer_ps->Instance->RCR = (t_uint16)(f_pwmOpe_ps->nbPulses_u16 - (t_uint16)1);
@@ -3065,8 +3071,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
                                                 FMKTIM_LINE_RUNMODE_INTERRUPT,
                                                 FMKTIM_HWTIM_CFG_EVNT,
                                                 FMKTIM_CHNLST_ACTIVATED);
-            //FMKCPU_GetTick(&g_start_time_u32);
-            //FMKSRL_LOG("Pulses Start at %d", g_start_time_u32);
+            FMKSRL_LOG("Pulses Start\r\n");
             //--- set all pwm to on ----//
             for(idxChnl_u8 = startIdxChnl_u8 ; 
             (idxChnl_u8 < endIdxChnl_u8) 
@@ -3088,6 +3093,17 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
             //f_timerInfo_ps->bspTimer_ps->Instance->EGR = TIM_EGR_UG;
             //__HAL_TIM_CLEAR_FLAG(f_timerInfo_ps->bspTimer_ps, TIM_FLAG_UPDATE);
            // __HAL_TIM_ENABLE_IT(f_timerInfo_ps->bspTimer_ps, TIM_IT_UPDATE);
+        }
+        else if((f_timerInfo_ps->IsTimerRunning_b == (t_bool)TRUE)
+        &&      (f_timerInfo_ps->SoftSyncMode_b == (t_bool)TRUE)
+        &&      (f_pwmOpe_ps->nbPulses_u16 > (t_uint16)0))
+        {
+            Ret_e = RC_WARNING_ALREADY_CONFIGURED;
+        }
+        else if(f_pwmOpe_ps->nbPulses_u16 > (t_uint16)0)
+        {
+            Ret_e = RC_ERROR_BUSY;
+            ASSERT((t_uint16)0);
         }
     }
 
