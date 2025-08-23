@@ -142,6 +142,9 @@ static t_sSafeMem_BlockInfo g_sfmb_TimChnlInfo_as[FMKTIM_TIMER_NB][FMKTIM_CHANNE
 
 /// @brief Know the allowed chnl for pulses generation when user not selected syncOpe 
 static t_eFMKTIM_InterruptChnl g_AllowTimChnlPulse_ae[FMKTIM_TIMER_NB];
+
+static t_uint32 g_start_time_u32;
+static t_uint32 g_end_time_u32;
 //********************************************************************************
 //                      Local functions - Prototypes
 //********************************************************************************
@@ -2513,7 +2516,8 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
                                                         FMKTIM_LINE_RUNMODE_INTERRUPT,
                                                         FMKTIM_HWTIM_CFG_EVNT,
                                                         FMKTIM_CHNLST_DISACTIVATED);
-                    FMKSRL_LOG("Pulses finished\r\n");
+                    FMKCPU_GetTick(&g_end_time_u32);
+                    FMKSRL_LOG("Pulses finished %d \r\n", (g_end_time_u32 - g_start_time_u32));
                     //---- we loop on every pwm that is ON and in SyncOpe Mode
                     //      and only after it we call user, too enhance the synchronisation of pulses ----//
                     for(LLI_u8 = (t_uint8)0 ; (LLI_u8 < FMKTIM_CHANNEL_NB) && (Ret_e >= RC_OK) ; LLI_u8++)
@@ -3071,7 +3075,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
                                                 FMKTIM_LINE_RUNMODE_INTERRUPT,
                                                 FMKTIM_HWTIM_CFG_EVNT,
                                                 FMKTIM_CHNLST_ACTIVATED);
-            FMKSRL_LOG("Pulses Start\r\n");
+            //FMKSRL_LOG("Pulses Start\r\n");
             //--- set all pwm to on ----//
             for(idxChnl_u8 = startIdxChnl_u8 ; 
             (idxChnl_u8 < endIdxChnl_u8) 
@@ -3089,7 +3093,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
                 }
             }
             //f_timerInfo_ps->bspTimer_ps->Instance->EGR = TIM_EGR_UG;
-            //FMKCPU_GetTick(&g_start_time_u32);
+            FMKCPU_GetTick(&g_start_time_u32);
             //f_timerInfo_ps->bspTimer_ps->Instance->EGR = TIM_EGR_UG;
             //__HAL_TIM_CLEAR_FLAG(f_timerInfo_ps->bspTimer_ps, TIM_FLAG_UPDATE);
            // __HAL_TIM_ENABLE_IT(f_timerInfo_ps->bspTimer_ps, TIM_IT_UPDATE);

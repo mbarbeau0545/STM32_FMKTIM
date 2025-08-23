@@ -77,3 +77,6 @@ def get_pwm_param(pwm_freq):
         #raise Exception('') 
 
     return real_psc, real_arr, loop_cnt, ratio_freq
+
+
+print(get_pwm_param(8666.66))

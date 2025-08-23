@@ -1,0 +1,195 @@
+#include <stdio.h>
+#include "LIBPID.h"
+#include <math.h>
+
+t_float32 setpoint = 90.0f;    // vitesse cible en deg/s
+t_float32 output;              // PWM (0 - 100 %)
+
+t_sLIBPID_ParamCfg pidConfig = {
+    .Kp_f32 = 10.0f,
+    .Ki_f32 = 0.0f,
+    .Kd_f32 = 0.1f,
+    .outMin_f32 = -1000.0f,
+    .outMax_f32 = 1000.0f  // PWM entre 0% et 100%
+};
+
+t_sLIBPID_PidInfo pidHandle;
+
+// Simu d’une vitesse mesurée qui va progressivement vers la consigne puis oscille
+t_float32 speed_feedback[40] = {
+     0.0f,  15.0f,  30.0f,  45.0f,  60.0f,
+    70.0f,  75.0f,  80.0f,  85.0f,  88.0f,
+    90.0f,  92.0f,  89.0f,  91.5f,  89.5f,
+    90.5f,  91.0f,  90.0f,  89.0f,  90.0f,
+    91.0f,  88.0f,  92.0f,  87.0f,  90.0f,
+    89.0f,  90.0f,  90.5f,  89.5f,  90.0f,
+    90.0f,  91.0f,  88.0f,  92.0f,  87.0f,
+    90.0f,  90.0f,  90.0f,  90.0f,  90.0f
+};
+
+#define CST_MHZ_TO_HZ                       (1000000U)
+#define CST_MAX_UINT_16BIT                 (65535U)
+#define CST_MAX_ARR_TARGET                 (50000U)
+#define FMKTIM_ARR_DECREASING_VAL_16B      (18000U)
+#define FMKTIM_FREQ_COMPUTE_DELTA_ACCEPTANCE (1.0f)
+#define FMKTIM_LOOP_MAX                     (5U)  // Limite de sécurité pour les boucles
+typedef struct
+{
+    t_uint16 prescaler_u16;
+    t_uint16 arr_u16;
+    t_float32 realFreq_f32;
+    t_float32 deltaFreq_f32;
+} t_sPWMConfig;
+
+t_float32 max_delta_freq_f32 = 0.0f;
+t_uint32 g_frequency_u32;
+/* Fonction pour calculer la fréquence PWM à partir du prescaler et ARR */
+static t_float32 s_ComputePwmFreq(t_uint32 timerFreqMHz_u32, t_uint16 prescaler_u16, t_uint16 arr_u16)
+{
+    t_float32 timerClkHz = (t_float32)(timerFreqMHz_u32 * CST_MHZ_TO_HZ);
+    return timerClkHz / ((prescaler_u16 + 1) * (arr_u16 + 1));
+}
+
+/* Fonction principale pour calculer le prescaler et l'ARR à partir de la fréquence PWM cible */
+t_sPWMConfig FMKTIM_ComputePscFromFreq(t_uint32 timerFreqMHz_u32, t_float32 pwmFreqTarget_f32)
+{
+    t_sPWMConfig config_s = {0};
+    t_float32 ratio_f32 = (t_float32)(timerFreqMHz_u32 * CST_MHZ_TO_HZ) / pwmFreqTarget_f32;
+
+    t_uint32 targetArr_u32 = CST_MAX_ARR_TARGET;
+    t_float32 pscTheo_f32 = 0.0f;
+    t_uint16 realPsc_u16 = 0;
+    t_float32 deltaPsc_f32 = 0.0f;
+    t_uint32 realArr = 0;
+    t_uint32 deltaArr = 0;
+    t_uint32 loopCnt = 0;
+
+    // === Étape 1 : Calcul prescaler théorique avec ajustement de ARR
+    do
+    {
+        pscTheo_f32 = (ratio_f32 / (t_float32)targetArr_u32) - 1.0f;
+        loopCnt++;
+        if (loopCnt >= FMKTIM_LOOP_MAX)
+        {
+            printf("[ERROR] Boucle ARR trop longue.\n");
+            break;
+        }
+        if (pscTheo_f32 > (t_float32)CST_MAX_UINT_16BIT)
+        {
+            targetArr_u32 -= FMKTIM_ARR_DECREASING_VAL_16B;
+        }
+    } while (pscTheo_f32 > (t_float32)CST_MAX_UINT_16BIT);
+
+    realPsc_u16 = (t_uint16)pscTheo_f32;
+    deltaPsc_f32 = pscTheo_f32 - (t_float32)realPsc_u16;
+
+    if (realPsc_u16 > 0)
+    {
+        loopCnt = 0;
+        do
+        {
+            deltaArr = (t_uint32)roundf(((targetArr_u32 * (deltaPsc_f32 + 1.0f)) - realPsc_u16) / realPsc_u16);
+            realArr = (t_uint32)(targetArr_u32 + deltaArr);
+            loopCnt++;
+            if (loopCnt >= FMKTIM_LOOP_MAX)
+            {
+                printf("[ERROR] Boucle realArr trop longue.\n");
+                break;
+            }
+            if (realArr >= CST_MAX_UINT_16BIT)
+            {
+                targetArr_u32 -= FMKTIM_ARR_DECREASING_VAL_16B;
+                pscTheo_f32 = (ratio_f32 / targetArr_u32) - 1.0f;
+                realPsc_u16 = (t_uint16)pscTheo_f32;
+               deltaPsc_f32 = pscTheo_f32 - (t_float32)realPsc_u16;
+            }
+        } while (realArr >= CST_MAX_UINT_16BIT);
+
+        config_s.prescaler_u16 = realPsc_u16 - 1U;
+        config_s.arr_u16 = (t_uint16)realArr;
+    }
+    else
+    {
+        realPsc_u16 = 0;
+        loopCnt = 0;
+        do
+        {
+            realArr = (t_uint32)(((t_float32)(timerFreqMHz_u32 * CST_MHZ_TO_HZ) /
+                        (pwmFreqTarget_f32 * (realPsc_u16 + 1U))) - 1.0f);
+            if (realArr >= CST_MAX_UINT_16BIT)
+            {
+                realPsc_u16++;
+            }
+            loopCnt++;
+            if (loopCnt >= FMKTIM_LOOP_MAX)
+            {
+                printf("[ERROR] Boucle realArr (cas PSC=0) trop longue.\n");
+                break;
+            }
+        } while (realArr >= CST_MAX_UINT_16BIT);
+
+        config_s.prescaler_u16 = realPsc_u16;
+        config_s.arr_u16 = (t_uint16)realArr;
+    }
+
+    config_s.realFreq_f32 = s_ComputePwmFreq(timerFreqMHz_u32,
+                                             config_s.prescaler_u16,
+                                             config_s.arr_u16);
+    config_s.deltaFreq_f32 = fabsf(pwmFreqTarget_f32 - config_s.realFreq_f32);
+    t_float32 ration_freq = config_s.deltaFreq_f32 / pwmFreqTarget_f32;
+    
+    if(ration_freq > max_delta_freq_f32)
+    {
+        max_delta_freq_f32 = ration_freq;
+    }
+    if (   ration_freq > 0.05f
+        || config_s.arr_u16 >= CST_MAX_UINT_16BIT
+        || config_s.prescaler_u16 >= CST_MAX_UINT_16BIT)
+    {
+  
+            max_delta_freq_f32 = config_s.deltaFreq_f32;
+            g_frequency_u32 = (t_uint32)pwmFreqTarget_f32;
+
+        
+        /*printf("[WARN] Target %.2f Hz -> Real %.2f Hz | ARR %u | PSC %u | Δ%.4f\n",
+               pwmFreqTarget_f32,
+               config_s.realFreq_f32,
+               config_s.arr_u16,
+               config_s.prescaler_u16,
+               config_s.deltaFreq_f32);*/
+    }
+
+    return config_s;
+}
+
+
+int main(void)
+{
+
+    t_sPWMConfig config_s;
+    config_s = FMKTIM_ComputePscFromFreq(128.0, 3333.666);
+
+    // for (t_uint32 LLI = 1 ; LLI < 100000 ; LLI++ )
+    // {
+    //     config_s = FMKTIM_ComputePscFromFreq(128, (t_float32)LLI);
+    // }
+
+    printf("max nb delta %.4f", max_delta_freq_f32);
+    printf("Frequency %d", (int)g_frequency_u32);
+
+    
+    /*LIBPID_Init(&pidHandle, pidConfig);
+
+    for(int i=0; i<40; i++)
+    {
+        t_float32 feedback = speed_feedback[i];  // vitesse mesurée à l’itération i
+
+        // Calcul PID : on calcule la PWM nécessaire pour atteindre la vitesse cible
+        LIBPID_Compute(&pidHandle, setpoint, feedback, &output);
+
+        printf("It %2d | Vitesse mesurée : %.2f deg/s | PWM (commande) : %.2f %%\n",
+               i, feedback, output);
+    }*/
+
+    return 0;
+}
