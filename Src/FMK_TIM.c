@@ -3024,8 +3024,11 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
             (idxChnl_u8 < endIdxChnl_u8) 
             && (Ret_e == RC_OK); idxChnl_u8++)
             {
-                if((chnlsInfo_pas[idxChnl_u8].IsChnlConfigure_b == (t_bool)TRUE)
-                && chnlsInfo_pas[idxChnl_u8].syncOpeOn_b == (t_bool)TRUE)
+                //fixbug, if softsync mode = FALSE, still deactivate if pulse = 0
+                if(((chnlsInfo_pas[idxChnl_u8].IsChnlConfigure_b == (t_bool)TRUE)
+                    && chnlsInfo_pas[idxChnl_u8].selfId_e == f_chnl_e)
+                || (((chnlsInfo_pas[idxChnl_u8].IsChnlConfigure_b == (t_bool)TRUE))
+                    && (chnlsInfo_pas[idxChnl_u8].syncOpeOn_b == (t_bool)TRUE)))
                 {
                     Ret_e = s_FMKTIM_Set_HwChannelState(f_timerInfo_ps, 
                                                             &chnlsInfo_pas[idxChnl_u8],
