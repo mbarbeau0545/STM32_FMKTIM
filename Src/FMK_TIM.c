@@ -603,12 +603,7 @@ t_eReturnCode FMKTIM_Cyclic(void)
     {
         case STATE_CYCLIC_CFG:
         {
-            g_FmkTim_ModState_e = STATE_CYCLIC_WAITING;
-            break;
-        }
-        case STATE_CYCLIC_WAITING:
-        {
-            // nothing to do, just wait all module are Ope
+            g_FmkTim_ModState_e = STATE_CYCLIC_PREOPE;
             break;
         }
         case STATE_CYCLIC_PREOPE:
