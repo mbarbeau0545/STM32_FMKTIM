@@ -399,7 +399,7 @@
     *  @retval RC_ERROR_NOT_ALLOWED              @ref RC_ERROR_NOT_ALLOWED
     */
     t_eReturnCode FMKTIM_Set_EvntTimerCfg(  t_eFMKTIM_InterruptLineEvnt f_EvntITLine_e,
-                                            t_uint32 f_periodms_u32,
+                                            t_float32 f_periodms_f32,
                                             t_cbFMKTIM_InterruptLine f_ITLine_cb);
     /**
     *

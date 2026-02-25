@@ -275,7 +275,7 @@ static t_eReturnCode s_FMKTIM_Set_ICChannelCfg( t_sFMKTIM_TimerInfo * f_timerInf
 */
 static t_eReturnCode s_FMKTIM_Set_EvntChannelCfg(   t_sFMKTIM_TimerInfo * f_timerInfo_ps,
                                                     t_sFMKTIM_ChnlInfo * f_chnlInfo_ps,
-                                                    t_uint32 f_periodms_u32,
+                                                    t_float32 f_periodms_f32,
                                                     t_cbFMKTIM_InterruptLine f_ITChannel_cb);
 
 
@@ -885,7 +885,7 @@ t_eReturnCode FMKTIM_Set_ICLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
  * FMKTIM_Set_EvntTimerCfg
  *********************************/
 t_eReturnCode FMKTIM_Set_EvntTimerCfg(   t_eFMKTIM_InterruptLineEvnt f_EvntITLine_e,
-                                        t_uint32 f_periodms_u32,
+                                        t_float32 f_periodms_f32,
                                         t_cbFMKTIM_InterruptLine f_ITChannel_cb)
 {
     /********************************
@@ -923,7 +923,7 @@ t_eReturnCode FMKTIM_Set_EvntTimerCfg(   t_eFMKTIM_InterruptLineEvnt f_EvntITLin
             //---------Get Event Init Function---------//
             Ret_e = s_FMKTIM_Set_EvntChannelCfg(&g_TimerInfo_as[timer_e],
                                                 &g_TimChnlInfo_as[timer_e][chnl_e],
-                                                f_periodms_u32,
+                                                f_periodms_f32,
                                                 f_ITChannel_cb);
         }
         if(Ret_e < RC_OK)
@@ -2053,7 +2053,7 @@ static t_eReturnCode s_FMKTIM_Set_ICChannelCfg( t_sFMKTIM_TimerInfo * f_timerInf
  *********************************/
 static t_eReturnCode s_FMKTIM_Set_EvntChannelCfg(   t_sFMKTIM_TimerInfo * f_timerInfo_ps,
                                                     t_sFMKTIM_ChnlInfo * f_chnlInfo_ps,
-                                                    t_uint32 f_periodms_u32,
+                                                    t_float32 f_periodms_f32,
                                                     t_cbFMKTIM_InterruptLine f_ITChannel_cb)
 {
     t_eReturnCode Ret_e = RC_OK;
@@ -2077,7 +2077,7 @@ static t_eReturnCode s_FMKTIM_Set_EvntChannelCfg(   t_sFMKTIM_TimerInfo * f_time
     else
     {
         //----------Get the prescaler/ ARR for the timer ------------------//
-        freqEvnt_f32 = (t_float32)(((t_float32)1.0f)/(f_periodms_u32/ (t_float32)CST_MSEC_TO_SEC));
+        freqEvnt_f32 = (t_float32)(((t_float32)1.0f)/(f_periodms_f32/ (t_float32)CST_MSEC_TO_SEC));
 
         //-------------Call Init Function-------------//
         Ret_e = s_FMKTIM_Set_BspTimerInit(  f_timerInfo_ps,
