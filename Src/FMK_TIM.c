@@ -22,6 +22,7 @@
 // ********************************************************************
 // *                      Defines
 // ********************************************************************
+#define FMKTIM_MAX_PULSE_RCR_16BIT ((t_uint32)0xFFFFU)
 
 // ********************************************************************
 // *                      Types
@@ -142,6 +143,8 @@ static t_sSafeMem_BlockInfo g_sfmb_TimChnlInfo_as[FMKTIM_TIMER_NB][FMKTIM_CHANNE
 
 /// @brief Know the allowed chnl for pulses generation when user not selected syncOpe 
 static t_eFMKTIM_InterruptChnl g_AllowTimChnlPulse_ae[FMKTIM_TIMER_NB];
+/// @brief Remaining pulses to load in RCR for long pulse bursts
+static t_uint32 g_TimChnlPulsesRemain_au32[FMKTIM_TIMER_NB][FMKTIM_CHANNEL_NB];
 
 static t_uint32 g_start_time_u32;
 static t_uint32 g_end_time_u32;
@@ -579,6 +582,7 @@ t_eReturnCode FMKTIM_Init(void)
                     chnlInfo_ps->DmaInfo_ps.BufferAdd1_pu32 = (t_uint32 *)NULL;
                     chnlInfo_ps->DmaInfo_ps.BufferAdd2_pu32 = (t_uint32 *)NULL;
                     chnlInfo_ps->DmaInfo_ps.bufferLen_u16 = (t_uint16)0;
+                    g_TimChnlPulsesRemain_au32[timIndex_u8][chnlIndex_u8] = (t_uint32)0;
 
                     Ret_e  = SMB_SecureBlockInit(   &g_sfmb_TimChnlInfo_as[timIndex_u8][chnlIndex_u8],
                                                     &g_TimChnlInfo_as[timIndex_u8][chnlIndex_u8],
@@ -2504,6 +2508,34 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
                 //----- Pulse finished -----//
                 if(f_cbEvnt_e == FMKTIM_BSP_CB_PERIOD_ELAPSED)
                 {
+                    t_uint32 pulseChunk_u32;
+                    t_uint32 remainPulse_u32;
+                    t_eFMKTIM_InterruptChnl pulseOwnerChnl_e;
+
+                    pulseOwnerChnl_e = g_AllowTimChnlPulse_ae[Calltimer_e];
+                    if(pulseOwnerChnl_e >= FMKTIM_CHANNEL_NB)
+                    {
+                        pulseOwnerChnl_e = FMKTIM_CHANNEL_1;
+                    }
+
+                    remainPulse_u32 = g_TimChnlPulsesRemain_au32[Calltimer_e][pulseOwnerChnl_e];
+                    if(remainPulse_u32 > (t_uint32)0)
+                    {
+                        pulseChunk_u32 = remainPulse_u32;
+                        if(pulseChunk_u32 > FMKTIM_MAX_PULSE_RCR_16BIT)
+                        {
+                            pulseChunk_u32 = FMKTIM_MAX_PULSE_RCR_16BIT;
+                        }
+
+                        timerInfo_ps->bspTimer_ps->Instance->RCR = (t_uint16)(pulseChunk_u32 - (t_uint32)1);
+                        timerInfo_ps->bspTimer_ps->Instance->EGR = TIM_EGR_UG;
+                        __HAL_TIM_CLEAR_FLAG(timerInfo_ps->bspTimer_ps, TIM_FLAG_UPDATE);
+
+                        g_TimChnlPulsesRemain_au32[Calltimer_e][pulseOwnerChnl_e] =
+                            (t_uint32)(remainPulse_u32 - pulseChunk_u32);
+                        break;
+                    }
+
                     //----- Reset PWM ON & call user-----//
                     __HAL_TIM_CLEAR_FLAG(timerInfo_ps->bspTimer_ps, TIM_FLAG_UPDATE);
                     Ret_e = s_FMKTIM_Set_HwChannelState(timerInfo_ps, 
@@ -2511,6 +2543,8 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
                                                         FMKTIM_LINE_RUNMODE_INTERRUPT,
                                                         FMKTIM_HWTIM_CFG_EVNT,
                                                         FMKTIM_CHNLST_DISACTIVATED);
+                    g_TimChnlPulsesRemain_au32[Calltimer_e][pulseOwnerChnl_e] = (t_uint32)0;
+                    g_AllowTimChnlPulse_ae[Calltimer_e] = FMKTIM_CHANNEL_NB;
                     FMKCPU_GetTick(&g_end_time_u32);
                     FMKSRL_LOG("Pulses finished %d \r\n", (g_end_time_u32 - g_start_time_u32));
                     //---- we loop on every pwm that is ON and in SyncOpe Mode
@@ -2958,6 +2992,9 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
     t_uint8 endIdxChnl_u8;
     t_sFMKTIM_ChnlInfo * chnlsInfo_pas;
     t_eFMKTIM_InterruptChnl AllowPulseChnl_e;
+    t_eFMKTIM_InterruptChnl pulseOwnerChnl_e;
+    t_uint32 pulseChunk_u32;
+    t_uint32 pulseRemain_u32;
                                                                         // several pulse if SyncOpe are false ----//
 
     if((f_timerInfo_ps == (t_sFMKTIM_TimerInfo *)NULL)
@@ -2987,6 +3024,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
         {
             startIdxChnl_u8 = FMKTIM_CHANNEL_1;
             endIdxChnl_u8 = FMKTIM_CHANNEL_NB;
+            pulseOwnerChnl_e = f_chnl_e;
         }
         else 
         {
@@ -2994,6 +3032,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
             g_AllowTimChnlPulse_ae[f_timerInfo_ps->selfId_e] = f_chnl_e; 
             startIdxChnl_u8 = (t_uint8)f_chnl_e;
             endIdxChnl_u8 = (t_uint8)(f_chnl_e + 1);
+            pulseOwnerChnl_e = f_chnl_e;
         }
 
         AllowPulseChnl_e = g_AllowTimChnlPulse_ae[f_timerInfo_ps->selfId_e];
@@ -3025,6 +3064,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
                 || (((chnlsInfo_pas[idxChnl_u8].IsChnlConfigure_b == (t_bool)TRUE))
                     && (chnlsInfo_pas[idxChnl_u8].syncOpeOn_b == (t_bool)TRUE)))
                 {
+                    g_TimChnlPulsesRemain_au32[f_timerInfo_ps->selfId_e][idxChnl_u8] = (t_uint32)0;
                     Ret_e = s_FMKTIM_Set_HwChannelState(f_timerInfo_ps, 
                                                             &chnlsInfo_pas[idxChnl_u8],
                                                             chnlsInfo_pas[idxChnl_u8].RunMode_e,
@@ -3062,8 +3102,17 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
                 }
             }
             //---- create an update event to load the register ----//
+            pulseChunk_u32 = (t_uint32)f_pwmOpe_ps->nbPulses_u16;
+            if(pulseChunk_u32 > FMKTIM_MAX_PULSE_RCR_16BIT)
+            {
+                pulseChunk_u32 = FMKTIM_MAX_PULSE_RCR_16BIT;
+            }
+            pulseRemain_u32 = (t_uint32)f_pwmOpe_ps->nbPulses_u16 - pulseChunk_u32;
+            g_TimChnlPulsesRemain_au32[f_timerInfo_ps->selfId_e][pulseOwnerChnl_e] = pulseRemain_u32;
+            g_AllowTimChnlPulse_ae[f_timerInfo_ps->selfId_e] = pulseOwnerChnl_e;
+
             f_timerInfo_ps->bspTimer_ps->Instance->CNT = 0;
-            f_timerInfo_ps->bspTimer_ps->Instance->RCR = (t_uint16)(f_pwmOpe_ps->nbPulses_u16 - (t_uint16)1);
+            f_timerInfo_ps->bspTimer_ps->Instance->RCR = (t_uint16)(pulseChunk_u32 - (t_uint32)1);
             // Activer l'interruption update
             f_timerInfo_ps->bspTimer_ps->Instance->EGR = TIM_EGR_UG;
             __HAL_TIM_CLEAR_FLAG(f_timerInfo_ps->bspTimer_ps, TIM_FLAG_UPDATE);
