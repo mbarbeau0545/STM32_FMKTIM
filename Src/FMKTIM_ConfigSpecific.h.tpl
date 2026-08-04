@@ -25,6 +25,9 @@
     // ********************************************************************
     // *                      Defines
     // ********************************************************************
+    #define FMKTIM_IS_32B_TIMER(f_timClock_e) \
+        ((f_timClock_e) == FMKCPU_RCC_CLK_TIM2 || \
+         (f_timClock_e) == FMKCPU_RCC_CLK_TIM5)
 
     // ********************************************************************
     // *                      Types
@@ -179,6 +182,32 @@
                                             t_float32  f_rqstARRValue_u32,
                                             t_uint32 * f_bspARR_pu32,
                                             t_uint32 * f_bspTimPrescaler_pu32);
+
+    t_eReturnCode FMKTIM_Set_OcChannelSpecificCfg(TIM_OC_InitTypeDef *f_bspOcInit_ps);
+    t_eReturnCode FMKTIM_Get_EcdrARRValueSpecific(t_eFMKTIM_EcdrMode f_EcdrMode_e,
+                                                  t_uint32 f_rqstArrValue_u32,
+                                                  t_uint32 *f_ArrValue_pu32);
+    t_eReturnCode FMKTIM_Get_BspChannelSpecific(t_uint32 f_channel_u32,
+                                                t_uint32 *f_bspChnl_pu32);
+    t_eReturnCode FMKTIM_Get_BspEcdrModeSpecific(t_eFMKTIM_EcdrMode f_EcdrMode_e,
+                                                 t_uint32 *f_bspEcdrMode_pu32);
+    /**
+    *
+    *   @brief    Return the effective timer clock multiplier for the selected MCU family.
+    *
+    *   @param[in]  f_timClock_e            : timer RCC clock port.
+    *   @param[in]  f_busFreqMHz_u16        : bus/kernel source frequency in MHz.
+    *   @param[in]  f_ahbFreqMHz_u16        : AHB/HCLK frequency in MHz.
+    *   @param[out] f_multiplier_pu8        : resulting multiplier to apply on bus frequency.
+    *
+    *  @retval RC_OK                        @ref RC_OK
+    *  @retval RC_ERROR_PTR_NULL            @ref RC_ERROR_PTR_NULL
+    *  @retval RC_ERROR_PARAM_INVALID       @ref RC_ERROR_PARAM_INVALID
+    */
+    t_eReturnCode FMKTIM_Get_TimerClockMultiplierSpecific(t_eFMKCPU_ClockPort f_timClock_e,
+                                                          t_uint16 f_busFreqMHz_u16,
+                                                          t_uint16 f_ahbFreqMHz_u16,
+                                                          t_uint8 *f_multiplier_pu8);
 
     /**< This function has been made to filled in c_FMKTIM_TimerFunc_apf */
     /*********************************

@@ -14,6 +14,7 @@
 #include "./FMK_TIM.h"
 #include "FMK_CFG/FMKCFG_ConfigFiles/FMKTIM_ConfigPrivate.h"
 #include "FMK_HAL/FMK_CPU/Src/FMK_CPU.h"
+#include "FMK_HAL/FMK_SRL/Src/FMK_SRL.h"
 
 #include "APP_CTRL/APP_SYS/Src/APP_SYS.h"
 #include "3_APP/APP_CTRL/APP_SDM/Src/APP_SDM.h"
@@ -515,13 +516,31 @@ t_eReturnCode FMKTIM_Init(void)
     t_eReturnCode Ret_e = RC_OK;
     t_uint8 timIndex_u8;
     t_uint8 chnlIndex_u8;
-    t_uint16 sysClkValueMHz_u16;
-    t_uint16 timClkValueMHz_u16;
+    t_uint16 timClkValueMHz_u16 = (t_uint16)0;
+    t_uint16 ahbClkValueMHz_u16 = (t_uint16)0;
+    t_uint16 apb1ClkValueMHz_u16 = (t_uint16)0;
+    t_uint16 apb2ClkValueMHz_u16 = (t_uint16)0;
+    t_uint8 timClkMultiplier_u8 = (t_uint8)1;
     t_eFMKCPU_SysClkOsc oscTimerSrc_e;
     t_sFMKTIM_TimerInfo * timerInfo_ps;
     t_sFMKTIM_ChnlInfo * chnlInfo_ps;
 
-    Ret_e = FMKCPU_GetSysClkValue(FMKCPU_SYS_CLOCK_SYSTEM, &sysClkValueMHz_u16);
+    Ret_e = FMKCPU_GetSysClkValue(FMKCPU_SYS_CLOCK_AHB1, &ahbClkValueMHz_u16);
+    if(Ret_e == RC_OK)
+    {
+        Ret_e = FMKCPU_GetSysClkValue(FMKCPU_SYS_CLOCK_APB1, &apb1ClkValueMHz_u16);
+    }
+    if(Ret_e == RC_OK)
+    {
+        Ret_e = FMKCPU_GetSysClkValue(FMKCPU_SYS_CLOCK_APB2, &apb2ClkValueMHz_u16);
+    }
+    if(Ret_e == RC_OK)
+    {
+        FMKSRL_LOG("[TIM] HCLK=%uMHz APB1=%uMHz APB2=%uMHz\r\n",
+                   ahbClkValueMHz_u16,
+                   apb1ClkValueMHz_u16,
+                   apb2ClkValueMHz_u16);
+    }
 
     if(Ret_e == RC_OK)
     {
@@ -557,17 +576,21 @@ t_eReturnCode FMKTIM_Init(void)
             }
             if(Ret_e == RC_OK)
             {
-                //---- see documentation fore more info, but basically 
-                //      the basic timer frequency is double whenever the sysclck value of the bus for 
-                //      the timer is < to the sys clock ----//
-                if(sysClkValueMHz_u16 > timClkValueMHz_u16)
-                {
-                    timerInfo_ps->timerFreqMHz_u32 = (t_uint32)((t_uint32)2 * (t_uint32)timClkValueMHz_u16);
-                }
-                else
-                {
-                    timerInfo_ps->timerFreqMHz_u32 = (t_uint32)(timClkValueMHz_u16);
-                }
+                Ret_e = FMKTIM_Get_TimerClockMultiplierSpecific(timerInfo_ps->c_clock_e,
+                                                                timClkValueMHz_u16,
+                                                                ahbClkValueMHz_u16,
+                                                                &timClkMultiplier_u8);
+            }
+            if(Ret_e == RC_OK)
+            {
+                timerInfo_ps->timerFreqMHz_u32 = (t_uint32)((t_uint32)timClkMultiplier_u8 *
+                                                            (t_uint32)timClkValueMHz_u16);
+                FMKSRL_LOG("[TIM] idx=%u clkPort=%u src=%uMHz mul=%u eff=%luMHz\r\n",
+                           timIndex_u8,
+                           timerInfo_ps->c_clock_e,
+                           timClkValueMHz_u16,
+                           timClkMultiplier_u8,
+                           (t_uint32)timerInfo_ps->timerFreqMHz_u32);
 
                 for (chnlIndex_u8 = (t_uint8)0 ; chnlIndex_u8 < (t_eFMKTIM_InterruptChnl)FMKTIM_CHANNEL_NB ; chnlIndex_u8++)
                 {
@@ -1847,11 +1870,7 @@ static t_eReturnCode s_FMKTIM_Set_PwmChannelCfg(t_sFMKTIM_TimerInfo * f_timerInf
                 BspOcInit_s.Pulse = 0;                     // Initial Duty Cycle à 0%
                 BspOcInit_s.OCFastMode = TIM_OCFAST_DISABLE;    // Mode rapide désactivé
                 BspOcInit_s.OCPolarity = TIM_OCPOLARITY_HIGH;  // Polarité normale (actif haut)
-#if defined(FMKCPU_STM32_ECU_FAMILY_G4) | defined(FMKCPU_STM32_ECU_FAMILY_H7)
-                BspOcInit_s.OCNPolarity = TIM_OCNPOLARITY_HIGH; // Non utilisé si pas de signal complémentaire
-                BspOcInit_s.OCIdleState = TIM_OCIDLESTATE_RESET; // État au repos à 0
-                BspOcInit_s.OCNIdleState = TIM_OCNIDLESTATE_RESET; // Non utilisé si pas de signal complémentaire
-#endif
+                Ret_e = FMKTIM_Set_OcChannelSpecificCfg(&BspOcInit_s);
                 BspRet_e = HAL_TIM_PWM_ConfigChannel(   f_timerInfo_ps->bspTimer_ps,
                                                         &BspOcInit_s,
                                                         (uint32_t)bspChannel_u32);  
@@ -2382,28 +2401,20 @@ static t_eReturnCode s_FMKTIM_GetEcdrARRValue(  t_eFMKTIM_EcdrMode f_EcdrMode_e,
             case FMKTIM_ECDR_MODE_TI1:
             case FMKTIM_ECDR_MODE_TI2:
             case FMKTIM_ECDR_MODE_TI12:
-#if defined(FMKCPU_STM32_ECU_FAMILY_G4)
-            case FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X1:
-            case FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X1_TI12:
-            case FMKTIM_ECDR_MODE_X1_TI1:
-            case FMKTIM_ECDR_MODE_X1_TI12:
-#endif // FMKCPU_STM32_ECU_FAMILY_G4
             {
                 *f_ArrValue_pu32 = (t_uint32)(f_rqstArrValue_u32);
                 break;
             }
-#if defined(FMKCPU_STM32_ECU_FAMILY_G4)
-            case FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X2:
-            case FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X2:
-            {
-                *f_ArrValue_pu32 = (t_uint32)((t_uint32)2 * f_rqstArrValue_u32);
-                break;
-            }
-#endif // FMKCPU_STM32_ECU_FAMILY_G4
             case FMKTIM_ECDR_MODE_NB:
             default:
             {
-                Ret_e = RC_ERROR_NOT_SUPPORTED;
+                Ret_e = FMKTIM_Get_EcdrARRValueSpecific(f_EcdrMode_e,
+                                                        f_rqstArrValue_u32,
+                                                        f_ArrValue_pu32);
+                if(Ret_e != RC_OK)
+                {
+                    Ret_e = RC_ERROR_NOT_SUPPORTED;
+                }
             }
         }
     }
@@ -2685,20 +2696,16 @@ static t_eReturnCode s_FMKTIM_Get_BspChannel(t_eFMKTIM_InterruptChnl f_channel_e
         case FMKTIM_CHANNEL_4:
             *f_bspChnl_pu32 = (t_uint32)TIM_CHANNEL_4;
             break;
-#ifdef FMKTIM_STM32_ECU_FAMILY_G
-        case FMKTIM_CHANNEL_5:
-            *f_bspChnl_pu32 = (t_uint32)TIM_CHANNEL_5;
-            break;
-        case FMKTIM_CHANNEL_6:
-            *f_bspChnl_pu32 = (t_uint32)TIM_CHANNEL_6;
-            break;
-#endif
         case FMKTIM_CHANNEL_ALL:
             *f_bspChnl_pu32 = (t_uint32)TIM_CHANNEL_ALL;
             break;
         case FMKTIM_CHANNEL_NB:
         default:
-            Ret_e = RC_ERROR_PARAM_NOT_SUPPORTED;
+            Ret_e = FMKTIM_Get_BspChannelSpecific(f_channel_e, f_bspChnl_pu32);
+            if(Ret_e != RC_OK)
+            {
+                Ret_e = RC_ERROR_PARAM_NOT_SUPPORTED;
+            }
             break;
         }
     }
@@ -2804,29 +2811,13 @@ static t_eReturnCode s_FMKTIM_GetBspEcdrMode(t_eFMKTIM_EcdrMode f_EcdrMode_e, t_
             case FMKTIM_ECDR_MODE_TI12:
                 *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_TI12;
                 break;
-#if defined(FMKCPU_STM32_ECU_FAMILY_G4)
-            case FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X2:
-                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_CLOCKPLUSDIRECTION_X2;
-                break;
-            case FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X1:
-                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_CLOCKPLUSDIRECTION_X1;
-                break;
-            case FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X2:
-                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_DIRECTIONALCLOCK_X2;
-                break;
-            case FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X1_TI12:
-                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_DIRECTIONALCLOCK_X1_TI12;
-                break;
-            case FMKTIM_ECDR_MODE_X1_TI1:
-                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_X1_TI1;
-                break;
-            case FMKTIM_ECDR_MODE_X1_TI12:
-                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_X1_TI2;
-                break;
-#endif // FMKCPU_STM32_ECU_FAMILY_G4
             case FMKTIM_ECDR_MODE_NB:
             default:
-                Ret_e = RC_ERROR_NOT_SUPPORTED;   
+                Ret_e = FMKTIM_Get_BspEcdrModeSpecific(f_EcdrMode_e, f_bspEcdrMode_pu32);
+                if(Ret_e != RC_OK)
+                {
+                    Ret_e = RC_ERROR_NOT_SUPPORTED;
+                }
         }
     }
     return Ret_e;

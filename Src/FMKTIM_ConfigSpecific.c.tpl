@@ -445,6 +445,212 @@ t_eReturnCode FMKTIM_GetDacTimerInitParam( t_eFMKCPU_ClockPort f_timClock_e,
     return RC_ERROR_INSTANCE_NOT_INITIALIZED;
 }
 
+/*********************************
+ * FMKTIM_Set_OcChannelSpecificCfg
+ *********************************/
+t_eReturnCode FMKTIM_Set_OcChannelSpecificCfg(TIM_OC_InitTypeDef *f_bspOcInit_ps)
+{
+    t_eReturnCode Ret_e = RC_OK;
+
+    if(f_bspOcInit_ps == (TIM_OC_InitTypeDef *)NULL)
+    {
+        Ret_e = RC_ERROR_PTR_NULL;
+    }
+    else
+    {
+#if defined(FMKCPU_STM32_ECU_FAMILY_G4) || defined(FMKCPU_STM32_ECU_FAMILY_H7)
+        f_bspOcInit_ps->OCNPolarity = TIM_OCNPOLARITY_HIGH;
+        f_bspOcInit_ps->OCIdleState = TIM_OCIDLESTATE_RESET;
+        f_bspOcInit_ps->OCNIdleState = TIM_OCNIDLESTATE_RESET;
+#endif
+    }
+
+    return Ret_e;
+}
+
+/*********************************
+ * FMKTIM_Get_EcdrARRValueSpecific
+ *********************************/
+t_eReturnCode FMKTIM_Get_EcdrARRValueSpecific(t_eFMKTIM_EcdrMode f_EcdrMode_e,
+                                              t_uint32 f_rqstArrValue_u32,
+                                              t_uint32 *f_ArrValue_pu32)
+{
+    t_eReturnCode Ret_e = RC_OK;
+
+    if(f_ArrValue_pu32 == (t_uint32 *)NULL)
+    {
+        Ret_e = RC_ERROR_PTR_NULL;
+    }
+    else
+    {
+#if defined(FMKCPU_STM32_ECU_FAMILY_G4)
+        switch(f_EcdrMode_e)
+        {
+            case FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X1:
+            case FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X1_TI12:
+            case FMKTIM_ECDR_MODE_X1_TI1:
+            case FMKTIM_ECDR_MODE_X1_TI12:
+                *f_ArrValue_pu32 = f_rqstArrValue_u32;
+                break;
+            case FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X2:
+            case FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X2:
+                *f_ArrValue_pu32 = (t_uint32)((t_uint32)2 * f_rqstArrValue_u32);
+                break;
+            default:
+                Ret_e = RC_ERROR_NOT_SUPPORTED;
+                break;
+        }
+#else
+        (void)f_EcdrMode_e;
+        (void)f_rqstArrValue_u32;
+        Ret_e = RC_ERROR_NOT_SUPPORTED;
+#endif
+    }
+
+    return Ret_e;
+}
+
+/*********************************
+ * FMKTIM_Get_BspChannelSpecific
+ *********************************/
+t_eReturnCode FMKTIM_Get_BspChannelSpecific(t_uint32 f_channel_u32,
+                                            t_uint32 *f_bspChnl_pu32)
+{
+    t_eReturnCode Ret_e = RC_ERROR_NOT_SUPPORTED;
+
+    if(f_bspChnl_pu32 == (t_uint32 *)NULL)
+    {
+        Ret_e = RC_ERROR_PTR_NULL;
+    }
+    else
+    {
+#if defined(FMKCPU_STM32_ECU_FAMILY_G4)
+        switch(f_channel_u32)
+        {
+            case (t_uint32)4:
+                *f_bspChnl_pu32 = (t_uint32)TIM_CHANNEL_5;
+                Ret_e = RC_OK;
+                break;
+            case (t_uint32)5:
+                *f_bspChnl_pu32 = (t_uint32)TIM_CHANNEL_6;
+                Ret_e = RC_OK;
+                break;
+            default:
+                break;
+        }
+#else
+        (void)f_channel_u32;
+#endif
+    }
+
+    return Ret_e;
+}
+
+/*********************************
+ * FMKTIM_Get_BspEcdrModeSpecific
+ *********************************/
+t_eReturnCode FMKTIM_Get_BspEcdrModeSpecific(t_eFMKTIM_EcdrMode f_EcdrMode_e,
+                                             t_uint32 *f_bspEcdrMode_pu32)
+{
+    t_eReturnCode Ret_e = RC_OK;
+
+    if(f_bspEcdrMode_pu32 == (t_uint32 *)NULL)
+    {
+        Ret_e = RC_ERROR_PTR_NULL;
+    }
+    else
+    {
+#if defined(FMKCPU_STM32_ECU_FAMILY_G4)
+        switch(f_EcdrMode_e)
+        {
+            case FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X2:
+                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_CLOCKPLUSDIRECTION_X2;
+                break;
+            case FMKTIM_ECDR_MODE_CLOCKPLUS_DIRECTION_X1:
+                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_CLOCKPLUSDIRECTION_X1;
+                break;
+            case FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X2:
+                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_DIRECTIONALCLOCK_X2;
+                break;
+            case FMKTIM_ECDR_MODE_DIRECTIONAL_CLK_X1_TI12:
+                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_DIRECTIONALCLOCK_X1_TI12;
+                break;
+            case FMKTIM_ECDR_MODE_X1_TI1:
+                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_X1_TI1;
+                break;
+            case FMKTIM_ECDR_MODE_X1_TI12:
+                *f_bspEcdrMode_pu32 = (t_uint32)TIM_ENCODERMODE_X1_TI2;
+                break;
+            default:
+                Ret_e = RC_ERROR_NOT_SUPPORTED;
+                break;
+        }
+#else
+        (void)f_EcdrMode_e;
+        Ret_e = RC_ERROR_NOT_SUPPORTED;
+#endif
+    }
+
+    return Ret_e;
+}
+
+/*********************************
+ * FMKTIM_Get_TimerClockMultiplierSpecific
+ *********************************/
+t_eReturnCode FMKTIM_Get_TimerClockMultiplierSpecific(t_eFMKCPU_ClockPort f_timClock_e,
+                                                      t_uint16 f_busFreqMHz_u16,
+                                                      t_uint16 f_ahbFreqMHz_u16,
+                                                      t_uint8 *f_multiplier_pu8)
+{
+    t_eReturnCode Ret_e = RC_OK;
+
+    if(f_multiplier_pu8 == (t_uint8 *)NULL)
+    {
+        Ret_e = RC_ERROR_PTR_NULL;
+    }
+    else if((f_timClock_e >= FMKCPU_RCC_CLK_NB)
+         || (f_busFreqMHz_u16 == (t_uint16)0)
+         || (f_ahbFreqMHz_u16 == (t_uint16)0))
+    {
+        Ret_e = RC_ERROR_PARAM_INVALID;
+    }
+    else
+    {
+        *f_multiplier_pu8 = (t_uint8)1;
+
+#if defined(FMKCPU_STM32_ECU_FAMILY_G4) || defined(FMKCPU_STM32_ECU_FAMILY_H7)
+        switch(f_timClock_e)
+        {
+            case FMKCPU_RCC_CLK_TIM1:
+            case FMKCPU_RCC_CLK_TIM2:
+            case FMKCPU_RCC_CLK_TIM3:
+            case FMKCPU_RCC_CLK_TIM4:
+            case FMKCPU_RCC_CLK_TIM5:
+            case FMKCPU_RCC_CLK_TIM6:
+            case FMKCPU_RCC_CLK_TIM7:
+            case FMKCPU_RCC_CLK_TIM8:
+            case FMKCPU_RCC_CLK_TIM12:
+            case FMKCPU_RCC_CLK_TIM13:
+            case FMKCPU_RCC_CLK_TIM14:
+            case FMKCPU_RCC_CLK_TIM15:
+            case FMKCPU_RCC_CLK_TIM16:
+            case FMKCPU_RCC_CLK_TIM17:
+                if(f_busFreqMHz_u16 < f_ahbFreqMHz_u16)
+                {
+                    *f_multiplier_pu8 = (t_uint8)2;
+                }
+                break;
+            default:
+                break;
+        }
+#else
+        (void)f_timClock_e;
+#endif
+    }
+
+    return Ret_e;
+}
+
 /**< This function has been made to filled in c_FMKTIM_TimerFunc_apf */
 
 /*********************************
