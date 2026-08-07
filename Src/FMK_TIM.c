@@ -708,7 +708,7 @@ t_eReturnCode FMKTIM_Set_PWMLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
     || (f_pwmFreq_f32 < FMKTIM_TIMER_MIN_FREQ_ALLOWED))
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     
     if(Ret_e == RC_OK)
@@ -743,7 +743,7 @@ t_eReturnCode FMKTIM_Set_PWMLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
         }
         else 
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
     }
     return Ret_e;
@@ -766,7 +766,7 @@ t_eReturnCode FMKTIM_Set_EcdrLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e
     if(f_InterruptLine_e >= FMKTIM_INTERRUPT_LINE_IO_NB)
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     if(Ret_e == RC_OK)
     {
@@ -800,7 +800,7 @@ t_eReturnCode FMKTIM_Set_EcdrLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e
         }    
         else 
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
             timChnlInfo_pas[FMKTIM_CHANNEL_2].ErrState_e = FMKTIM_ERRSTATE_INIT_FAILED;
             timChnlInfo_pas[FMKTIM_CHANNEL_1].ErrState_e = FMKTIM_ERRSTATE_INIT_FAILED;
         }
@@ -828,14 +828,14 @@ t_eReturnCode FMKTIM_Get_EncoderValues(t_eFMKTIM_InterruptLineIO f_EcdrLine_e,
     if ((f_direction_pu8 == NULL) || (f_position_pu32 == NULL))
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
 
     //--- check param
     if (f_EcdrLine_e >= FMKTIM_INTERRUPT_LINE_IO_NB)
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
 
     if (Ret_e == RC_OK)
@@ -860,7 +860,7 @@ t_eReturnCode FMKTIM_Get_EncoderValues(t_eFMKTIM_InterruptLineIO f_EcdrLine_e,
         }
         else
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
     }
 
@@ -881,13 +881,13 @@ t_eReturnCode FMKTIM_Set_ICLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
     if(f_ITChannel_cb == (t_cbFMKTIM_InterruptLine *)NULL_FUNCTION)
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     if( (f_MeasTrigger_e >= FMKTIM_LINE_MEAS_NB)
     || (f_InterruptLine_e >= FMKTIM_INTERRUPT_LINE_IO_NB))
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     if(Ret_e == RC_OK)
     {
@@ -903,7 +903,7 @@ t_eReturnCode FMKTIM_Set_ICLineCfg(t_eFMKTIM_InterruptLineIO f_InterruptLine_e,
     }
     else 
     {
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     return Ret_e;
 }
@@ -927,12 +927,12 @@ t_eReturnCode FMKTIM_Set_EvntTimerCfg(   t_eFMKTIM_InterruptLineEvnt f_EvntITLin
     if (f_EvntITLine_e >= FMKTIM_INTERRUPT_LINE_EVNT_NB)
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     if (f_ITChannel_cb == (t_cbFMKTIM_InterruptLine *)NULL_FUNCTION)
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     if(Ret_e == RC_OK)
     {
@@ -955,7 +955,7 @@ t_eReturnCode FMKTIM_Set_EvntTimerCfg(   t_eFMKTIM_InterruptLineEvnt f_EvntITLin
         }
         if(Ret_e < RC_OK)
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
     }
     
@@ -980,12 +980,12 @@ t_eReturnCode FMKTIM_AddInterruptCallback(t_eFMKTIM_InterruptLineIO f_InterruptL
     if (f_InterruptLine_e >= FMKTIM_INTERRUPT_LINE_IO_NB)
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     if (f_ITChannel_cb == (t_cbFMKTIM_InterruptLine *)NULL_FUNCTION)
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
 
     if (Ret_e == RC_OK)
@@ -1003,7 +1003,7 @@ t_eReturnCode FMKTIM_AddInterruptCallback(t_eFMKTIM_InterruptLineIO f_InterruptL
             (timerInfo_s.isConfigured_b   != (t_bool)True))
         {
             Ret_e = RC_ERROR_WRONG_STATE;
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
         else
         {
@@ -1173,7 +1173,7 @@ t_eReturnCode FMKTIM_Set_ICLineValue(t_eFMKTIM_InterruptLineIO f_Itline_e,
             }
             else
             {
-                ASSERT((t_uint16)Ret_e);
+                ASSERT((t_sint32)Ret_e);
             }
         }
         // Écriture protégée dans la SRAM via SMB_Write
@@ -1292,7 +1292,7 @@ t_eReturnCode FMKTIM_Set_EcdrLineState(t_eFMKTIM_InterruptLineIO f_Itline_e,
 
     if(Ret_e < RC_OK)
     {
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
 
     return Ret_e;
@@ -1354,7 +1354,7 @@ t_eReturnCode FMKTIM_Set_EvntLineState(  t_eFMKTIM_InterruptLineEvnt f_EvntITLin
         }
         else 
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
     }
 
@@ -1405,7 +1405,7 @@ t_eReturnCode FMKTIM_Get_PwmLineValue(  t_eFMKTIM_InterruptLineIO f_Itline_e,
     }
     else 
     {
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
 
     return Ret_e;
@@ -1537,7 +1537,7 @@ t_eReturnCode FMKTIM_Get_LineErrorStatus(   t_eFMKTIM_InterruptLineType f_ITLine
         }
         else 
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
         
     }
@@ -1552,7 +1552,7 @@ TIM_HandleTypeDef * FMKTIM_PRIVATE_GetHandleTypeDef(t_uint8 f_timer_u8)
 {
     // if(g_TimerInfo_as[f_timer_u8].isConfigured_b == (t_bool)False)
     // {
-    //     ASSERT((t_uint16)0);
+    //     ASSERT((t_sint32)0);
     // }
     return (TIM_HandleTypeDef *)(g_TimerInfo_as[f_timer_u8].bspTimer_ps);
 }
@@ -1608,7 +1608,7 @@ static t_eReturnCode s_FMKTIM_PerformDiagnostic(t_eFMKTIM_Timer f_timer_e)
     if(f_timer_e >= FMKTIM_TIMER_NB)
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
     }
     else
     {
@@ -1730,13 +1730,13 @@ static t_eReturnCode s_FMKTIM_RqstLineValidityOpe(  t_eFMKTIM_InterruptLineType 
     if(f_ITLineType_e >= FMKTIM_INTERRUPT_LINE_TYPE_NB)
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     else if((f_timer_pe == (t_eFMKTIM_Timer *)NULL)
     ||      (f_chnl_pe == (t_eFMKTIM_InterruptChnl *)NULL))
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     else if(g_FmkTim_ModState_e != STATE_CYCLIC_OPE
     && g_FmkTim_ModState_e != STATE_CYCLIC_PREOPE)
@@ -1765,7 +1765,7 @@ static t_eReturnCode s_FMKTIM_RqstLineValidityOpe(  t_eFMKTIM_InterruptLineType 
                 || (channel_pas[chnl_e].IsChnlConfigure_b == (t_bool)False))
                 {
                     Ret_e = RC_ERROR_INSTANCE_NOT_INITIALIZED;
-                    ASSERT((t_uint16)Ret_e);
+                    ASSERT((t_sint32)Ret_e);
                 }
             }
             else if(chnl_e == FMKTIM_CHANNEL_ALL)
@@ -1775,18 +1775,18 @@ static t_eReturnCode s_FMKTIM_RqstLineValidityOpe(  t_eFMKTIM_InterruptLineType 
                 || (channel_pas[FMKTIM_CHANNEL_2].IsChnlConfigure_b == (t_bool)False))
                 {
                     Ret_e = RC_ERROR_INSTANCE_NOT_INITIALIZED;
-                    ASSERT((t_uint16)Ret_e);
+                    ASSERT((t_sint32)Ret_e);
                 }
             }
             else 
             {
                 Ret_e = RC_ERROR_PARAM_INVALID;
-                ASSERT((t_uint16)Ret_e);
+                ASSERT((t_sint32)Ret_e);
             }
             if(timerInfo_ps->HwCfg_e != f_HwTypeSuppose_e)
             {
                 Ret_e = RC_ERROR_WRONG_CONFIG;
-                ASSERT((t_uint16)Ret_e);
+                ASSERT((t_sint32)Ret_e);
             }
             else if(timerInfo_ps->bspTimer_ps->Lock == HAL_LOCKED)
             {
@@ -1826,24 +1826,24 @@ static t_eReturnCode s_FMKTIM_Set_PwmChannelCfg(t_sFMKTIM_TimerInfo * f_timerInf
     || (f_chnlInfo_ps == (t_sFMKTIM_ChnlInfo *)NULL))
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
     }
     //----------Check if timer is not configured yet------------------//
     else if ((f_timerInfo_ps->isConfigured_b == (t_bool)False))
     {
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
         Ret_e = RC_ERROR_INSTANCE_NOT_INITIALIZED;
     }
     //-------this timer has already been configured and cannot be used for another Type of Configuration------//
     else if (f_timerInfo_ps->HwCfg_e != FMKTIM_HWTIM_CFG_PWM)
     { 
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
         Ret_e = RC_ERROR_NOT_ALLOWED;
     }
     //-------Channel is already used------//
     else if (f_chnlInfo_ps->IsChnlConfigure_b == (t_bool)True)
     {
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
         Ret_e = RC_ERROR_ALREADY_CONFIGURED;
     }
     else
@@ -1894,7 +1894,7 @@ static t_eReturnCode s_FMKTIM_Set_PwmChannelCfg(t_sFMKTIM_TimerInfo * f_timerInf
 
             if(BspRet_e != HAL_OK)
             {
-                ASSERT((t_uint16)Ret_e);
+                ASSERT((t_sint32)Ret_e);
                 Ret_e = RC_ERROR_WRONG_RESULT;
             }
         }
@@ -1904,7 +1904,7 @@ static t_eReturnCode s_FMKTIM_Set_PwmChannelCfg(t_sFMKTIM_TimerInfo * f_timerInf
         }
         else
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
             f_chnlInfo_ps->ErrState_e = FMKTIM_ERRSTATE_INIT_FAILED;
         }
         
@@ -1929,7 +1929,7 @@ static t_eReturnCode s_FMKTIM_Set_EcdrChannelCfg(   t_sFMKTIM_TimerInfo * f_time
     //----------Check if timer is not configured yet------------------//
     if ((f_timerInfo_ps->isConfigured_b == (t_bool)True))
     {
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
         Ret_e = RC_ERROR_ALREADY_CONFIGURED;
     }
     else
@@ -1964,7 +1964,7 @@ static t_eReturnCode s_FMKTIM_Set_EcdrChannelCfg(   t_sFMKTIM_TimerInfo * f_time
         }
         if(Ret_e < RC_OK)
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
     }
 
@@ -1991,12 +1991,12 @@ static t_eReturnCode s_FMKTIM_Set_ICChannelCfg( t_sFMKTIM_TimerInfo * f_timerInf
     || f_chnlInfo_ps == (t_sFMKTIM_ChnlInfo *)NULL)
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
     }
     //-------Channel is already used------//
     else if (f_chnlInfo_ps->IsChnlConfigure_b == (t_bool)True)
     {
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
         Ret_e = RC_ERROR_ALREADY_CONFIGURED;
     }
     else
@@ -2018,7 +2018,7 @@ static t_eReturnCode s_FMKTIM_Set_ICChannelCfg( t_sFMKTIM_TimerInfo * f_timerInf
             if (f_timerInfo_ps->HwCfg_e != FMKTIM_HWTIM_CFG_IC)
             {
                 Ret_e = RC_ERROR_NOT_ALLOWED;
-                ASSERT((t_uint16)0);
+                ASSERT((t_sint32)0);
             }
         }
 
@@ -2062,7 +2062,7 @@ static t_eReturnCode s_FMKTIM_Set_ICChannelCfg( t_sFMKTIM_TimerInfo * f_timerInf
             }
             else
             {
-                ASSERT((t_uint16)Ret_e);
+                ASSERT((t_sint32)Ret_e);
                 f_chnlInfo_ps->ErrState_e =  FMKTIM_ERRSTATE_INIT_FAILED;
             }
         }
@@ -2086,7 +2086,7 @@ static t_eReturnCode s_FMKTIM_Set_EvntChannelCfg(   t_sFMKTIM_TimerInfo * f_time
     || f_chnlInfo_ps == (t_sFMKTIM_ChnlInfo *)NULL)
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
     }
     //-------------See if timer has already been configured-------------//
     else if(f_timerInfo_ps->isConfigured_b == (t_bool)True)
@@ -2095,7 +2095,7 @@ static t_eReturnCode s_FMKTIM_Set_EvntChannelCfg(   t_sFMKTIM_TimerInfo * f_time
         // As the timer itself generate the Interrutpion
         // You can use only on Aplication Channel-------------//
         Ret_e = RC_ERROR_ALREADY_CONFIGURED;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     else
     {
@@ -2117,7 +2117,7 @@ static t_eReturnCode s_FMKTIM_Set_EvntChannelCfg(   t_sFMKTIM_TimerInfo * f_time
         }
         else
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
             f_chnlInfo_ps->ErrState_e = FMKTIM_ERRSTATE_INIT_FAILED;
         }
     }
@@ -2183,7 +2183,7 @@ static t_eReturnCode s_FMKTIM_FilledBspEcdrInit(t_sFMKTIM_EcdrCfg * f_EcdrCdg_ps
         }
         else 
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
     }
 
@@ -2207,12 +2207,12 @@ static t_eReturnCode s_FMKTIM_Set_HwChannelState( t_sFMKTIM_TimerInfo * f_timInf
     || (f_chnlInfo_ps == (t_sFMKTIM_ChnlInfo *)NULL))
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
     }
     if((f_runMode_e >= FMKTIM_LINE_RUNMODE_NB)
     || (f_hwTimCfg_e >= FMKTIM_HWTIM_CFG_NB))
     {
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
         Ret_e = RC_ERROR_PARAM_INVALID;
     }
 
@@ -2369,7 +2369,7 @@ static t_eReturnCode s_FMKTIM_Get_CCRxValue(t_sFMKTIM_TimerInfo * f_timInfo_ps,
         }
         else 
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
             *f_comparedValue_pu32 = (t_uint32)0;
         }
     }
@@ -2468,7 +2468,7 @@ static t_eReturnCode s_FMKTIM_Set_BspTimerInit( t_sFMKTIM_TimerInfo * f_timer_ps
                                                                         (void *)f_timerCfg_pv);
         if(bspRet_e != HAL_OK)
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
             Ret_e = RC_ERROR_WRONG_RESULT;
         }
         else 
@@ -2591,7 +2591,7 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
                     //g_timerPeriodPwm_ab[Calltimer_e] = (t_bool)False;
                     if(Ret_e != RC_OK)
                     {
-                        ASSERT((t_uint16)Ret_e);
+                        ASSERT((t_sint32)Ret_e);
                     }
                 }
                 break;
@@ -2658,7 +2658,7 @@ static void s_FMKTIM_BspRqst_InterruptMngmt(TIM_HandleTypeDef *f_timerIstce_ps, 
     }
     if(Ret_e < RC_OK)
     {
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
 
     return;
@@ -2931,7 +2931,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerFrequency( t_sFMKTIM_TimerInfo * f_time
         }
         if(Ret_e != RC_OK)
         {
-            ASSERT((t_uint16)Ret_e);
+            ASSERT((t_sint32)Ret_e);
         }
     }
     return Ret_e;
@@ -2992,19 +2992,19 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
     || (f_pwmOpe_ps == (t_sFMKTIM_PwmOpe *)NULL))
     {
         Ret_e = RC_ERROR_PTR_NULL;
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
     }
     else if(f_chnl_e >= FMKTIM_CHANNEL_NB)
     {
         Ret_e = RC_ERROR_PARAM_INVALID;
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
     }
     else if((g_AllowTimChnlPulse_ae[f_timerInfo_ps->selfId_e] != FMKTIM_CHANNEL_NB)
     && ((g_AllowTimChnlPulse_ae[f_timerInfo_ps->selfId_e] != f_chnl_e)
     && (f_timerInfo_ps->SoftSyncMode_b == (t_bool)FALSE)))
     {
         Ret_e = RC_ERROR_NOT_ALLOWED;
-        ASSERT((t_uint16)0);
+        ASSERT((t_sint32)0);
     }
     else 
     {
@@ -3145,7 +3145,7 @@ static t_eReturnCode s_FMKTIM_UpdateTimerPulses(t_sFMKTIM_TimerInfo * f_timerInf
         else if(f_pwmOpe_ps->nbPulses_u16 > (t_uint16)0)
         {
             Ret_e = RC_ERROR_BUSY;
-            ASSERT((t_uint16)0);
+            ASSERT((t_sint32)0);
         }
     }
 
@@ -3221,7 +3221,7 @@ static t_eReturnCode s_FMKTIM_Get_TimChnlFromITLine(t_eFMKTIM_InterruptLineType 
     && (*f_channel_pe) != FMKTIM_CHANNEL_ALL))
     {
         Ret_e = RC_ERROR_LIMIT_REACHED;
-        ASSERT((t_uint16)Ret_e);
+        ASSERT((t_sint32)Ret_e);
     }
     
     return Ret_e;
